@@ -1,9 +1,9 @@
-const CACHE_NAME = 'healthspan-v1.6';
+const CACHE_NAME = 'healthspan-v1.7';
 const ASSETS = [
-  './',
   './index.html',
   './manifest.json',
-  'https://cdn.tailwindcss.com'
+  './assets/icons/icon-192.png',
+  './assets/icons/icon-512.png'
 ];
 
 // Install and Cache assets
@@ -14,6 +14,8 @@ self.addEventListener('install', (e) => {
     })
   );
 });
+
+// ... (leave the fetch and activate event listeners exactly as they are) ...const CACHE_NAME = 'healthspan-v1.6';
 
 // Serve from Cache, Fallback to Network
 self.addEventListener('fetch', (e) => {
