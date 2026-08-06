@@ -1,21 +1,24 @@
-{
+
+  {
     "name": "Healthspan Tracker",
     "short_name": "Healthspan",
-    "description": "Daily Logging & Symptom Ecosystem",
+    "description": "Daily Logging Ecosystem",
     "start_url": "./index.html",
     "display": "standalone",
     "background_color": "#0f172a",
     "theme_color": "#1e1b4b",
     "icons": [
       {
-        "src": "icon-192.png",
+        "src": "./assets/icons/icon-192.png",
         "sizes": "192x192",
-        "type": "image/png"
+        "type": "image/png",
+        "purpose": "any maskable"
       },
       {
-        "src": "icon-512.png",
+        "src": "./assets/icons/icon-512.png",
         "sizes": "512x512",
-        "type": "image/png"
+        "type": "image/png",
+        "purpose": "any maskable"
       }
     ]
   }
