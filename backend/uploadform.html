@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; 
+      padding: 15px; 
+      background-color: #f8f9fa; 
+      color: #333; 
+    }
+    .upload-container { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 15px; 
+    }
+    label { 
+      font-weight: bold; 
+      font-size: 14px; 
+      color: #444; 
+    }
+    input[type="file"] { 
+      border: 1px solid #ccc; 
+      padding: 10px; 
+      border-radius: 6px; 
+      background: white; 
+      font-size: 13px;
+    }
+    button { 
+      background-color: #4caf50; 
+      color: white; 
+      border: none; 
+      padding: 12px; 
+      font-weight: bold; 
+      border-radius: 6px; 
+      cursor: pointer; 
+      font-size: 14px; 
+      transition: background-color 0.2s;
+    }
+    button:hover { background-color: #43a047; }
+    button:disabled { background-color: #aaaaaa; cursor: not-allowed; }
+    #status { font-size: 13px; font-weight: bold; margin-top: 5px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="upload-container">
+    <label for="fileInput">Select your Golf Tracker JSON file:</label>
+    <input type="file" id="fileInput" accept=".json">
+    <button id="uploadBtn" onclick="processFile()">Upload & Ingest</button>
+    <div id="status"></div>
+  </div>
+  
+  <script>
+    function processFile() {
+      const fileInput = document.getElementById('fileInput');
+      const statusDiv = document.getElementById('status');
+      const btn = document.getElementById('uploadBtn');
+      
+      if (fileInput.files.length === 0) {
+        statusDiv.innerHTML = '<span style="color:#d32f2f;">Please select a file first.</span>';
+        return;
+      }
+      
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+      
+      btn.disabled = true;
+      statusDiv.innerText = "Reading file...";
+      statusDiv.style.color = "#1976d2";
+      
+      // When file is read, send it to Apps Script backend
+      reader.onload = function(e) {
+        const jsonString = e.target.result;
+        statusDiv.innerText = "Validating with Master Data Dictionary...";
+        
+        // google.script.run securely calls your backend function
+        google.script.run
+          .withSuccessHandler(function() {
+            statusDiv.innerHTML = '<span style="color:#388e3c;">Success! Closing...</span>';
+            setTimeout(() => google.script.host.close(), 1200); // Auto-close modal
+          })
+          .withFailureHandler(function(error) {
+            statusDiv.innerHTML = '<span style="color:#d32f2f;">Error: ' + error.message + '</span>';
+            btn.disabled = false; // Re-enable button so user can try again
+          })
+          .ingestGolfAuditJSON(jsonString); // Calls the backend parser we just built
+      };
+      
+      reader.readAsText(file);
+    }
+  </script>
+</body>
+</html>
