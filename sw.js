@@ -16,7 +16,7 @@ self.addEventListener('install', (e) => {
 });
 
 // ... (leave the fetch and activate event listeners exactly as they are) ...const CACHE_NAME = 'healthspan-v1.6';
-// added this comment to force github to commit and sync changes
+// added this comment to force github to commit and sync changes...
 // Serve from Cache, Fallback to Network
 self.addEventListener('fetch', (e) => {
   // We do NOT want to cache API calls to Google Apps Script
