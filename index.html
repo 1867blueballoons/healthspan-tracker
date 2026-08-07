@@ -8,8 +8,10 @@
     <!-- PWA & Native App Meta Tags -->
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#1e1b4b">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- // leave? -->
     <meta name="apple-mobile-web-app-title" content="Healthspan">
     <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
     <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
@@ -49,7 +51,7 @@
             <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight drop-shadow-lg">
                 Healthspan Metrics
             </h1>
-            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem<span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v1.8</span></p>
+            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem<span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v2.0</span></p>
         </header>
 
         <div id="loadingState" class="flex flex-col items-center justify-center py-12">
@@ -489,7 +491,14 @@
             };
 
             // 2. OPTIMISTIC UPDATE: Instantly save to local memory & localStorage
-            if (!globalDataCache[targetDateString]) globalDataCache[targetDateString] = { metrics: [], hayfever: [], symptoms: [] };
+            if (!globalDataCache[targetDateString]) {
+                globalDataCache[targetDateString] = { metrics: [], hayfever: [], symptoms: [] };
+            }
+            
+            // THE SAFETY CATCH: If the backend sent 'null' for a blank day, convert it to an empty array first
+            if (!globalDataCache[targetDateString].metrics) globalDataCache[targetDateString].metrics = [];
+            if (!globalDataCache[targetDateString].hayfever) globalDataCache[targetDateString].hayfever = [];
+            if (!globalDataCache[targetDateString].symptoms) globalDataCache[targetDateString].symptoms = [];
             
             globalDataCache[targetDateString].metrics[6] = payload.ambient_temp_celsius;
             globalDataCache[targetDateString].metrics[11] = payload.subjective_energy;
