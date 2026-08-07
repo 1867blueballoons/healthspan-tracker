@@ -4,49 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Healthspan Daily Tracker</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    
     <!-- PWA & Native App Meta Tags -->
-
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#1e1b4b">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Healthspan">
     <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
-    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">    
+    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); min-height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); min-height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding-bottom: 2rem;}
         .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: all 0.3s ease; }
-        .retort-banner { background: rgba(255, 255, 255, 0.1); border-left: 4px solid #64748b; backdrop-filter: blur(5px); }
         .loader { border: 4px solid rgba(255,255,255,0.2); border-top: 4px solid #fff; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* BOLD Checked States for Symptoms */
         .symptom-check + label { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        #sym_sneezing:checked + label { background-color: #3b82f6; color: white; border-color: #2563eb; transform: scale(1.05); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
-        #sym_runny:checked + label { background-color: #06b6d4; color: white; border-color: #0891b2; transform: scale(1.05); box-shadow: 0 4px 12px rgba(6,182,212,0.4); }
-        #sym_eyes:checked + label { background-color: #ec4899; color: white; border-color: #db2777; transform: scale(1.05); box-shadow: 0 4px 12px rgba(236,72,153,0.4); }
-        #sym_headache:checked + label { background-color: #ef4444; color: white; border-color: #dc2626; transform: scale(1.05); box-shadow: 0 4px 12px rgba(239,68,68,0.4); }
-        #sym_weary:checked + label { background-color: #a855f7; color: white; border-color: #9333ea; transform: scale(1.05); box-shadow: 0 4px 12px rgba(168,85,247,0.4); }
+        #sym_sneezing:checked + label { background-color: #3b82f6; color: white; border-color: #2563eb; transform: scale(1.05); }
+        #sym_runny:checked + label { background-color: #06b6d4; color: white; border-color: #0891b2; transform: scale(1.05); }
+        #sym_eyes:checked + label { background-color: #ec4899; color: white; border-color: #db2777; transform: scale(1.05); }
+        #sym_headache:checked + label { background-color: #ef4444; color: white; border-color: #dc2626; transform: scale(1.05); }
+        #sym_weary:checked + label { background-color: #a855f7; color: white; border-color: #9333ea; transform: scale(1.05); }
 
-        /* Interventions */
-        .intervention-extras { display: none; }
-        .intervention-check:checked ~ .intervention-extras { display: flex; }
+        /* Unified Duration Widget Styling */
+        .duration-widget input { text-align: center; font-weight: bold; }
+        
+        /* Auto-Save Toast */
+        #syncToast { transition: opacity 0.3s ease; }
     </style>
 </head>
 <body class="text-gray-800 p-4 md:p-8">
 
-    <div class="max-w-3xl mx-auto">
+    <div class="max-w-3xl mx-auto relative">
+        
+        <!-- Auto-Save Status Indicator -->
+        <div id="syncToast" class="fixed top-4 right-4 bg-gray-900 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg opacity-0 pointer-events-none z-50 flex items-center">
+            <span id="syncToastIcon" class="mr-2">🔄</span>
+            <span id="syncToastText">Saving...</span>
+        </div>
+
         <header class="text-center mb-6">
             <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight drop-shadow-lg">
                 Healthspan Metrics
             </h1>
-            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v1.6</span></p>
+            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem v1.7<span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v1.8</span></p>
         </header>
 
         <div id="loadingState" class="flex flex-col items-center justify-center py-12">
             <div class="loader mb-4"></div>
-            <p id="loadingText" class="text-white font-medium">Syncing ecosystem...</p>
+            <p class="text-white font-medium">Syncing ecosystem...</p>
         </div>
 
         <form id="healthspanForm" class="space-y-6 hidden">
@@ -62,24 +70,34 @@
                     <button type="button" onclick="changeDate(1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl">&rarr;</button>
                 </div>
             </div>
-            
-            <div id="fetchStatus" class="text-right text-indigo-200 text-sm font-medium h-5"></div>
 
             <!-- SECTION 1: Base Metrics -->
             <div id="section_metrics" class="glass-card p-6 border-t-4 border-indigo-500">
                 <h2 class="text-xl font-bold text-indigo-800 mb-4 flex items-center"><span class="text-2xl mr-2">💤</span> Base Metrics</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Ambient Temp (°C)</label>
-                        <input type="number" step="0.1" id="ambient_temp_celsius" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50">
+                        <input type="number" step="0.1" id="ambient_temp_celsius" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50 input-trigger">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Sleep Debt Duration</label>
-                        <div class="relative">
-                            <!-- step="600" snaps to 10 min intervals -->
-                            <input type="time" id="sleep_debt_manual" step="600" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-lg bg-gray-50 cursor-pointer">
-                            <p class="text-xs text-indigo-600 mt-1 font-medium">↑ Tap clock icon to use the dial (10m intervals)</p>
-                        </div>
+                        <input type="time" id="sleep_debt_manual" step="600" onchange="roundToNearest10(this)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-lg bg-gray-50 cursor-pointer input-trigger">
+                        <p class="text-xs text-indigo-600 mt-1 font-medium">Auto-rounds & snaps to 10m intervals</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1 flex justify-between">
+                            <span>Subjective Energy</span>
+                            <span id="energy_val_display" class="text-indigo-600 font-bold bg-indigo-100 px-2 rounded">5 / 10</span>
+                        </label>
+                        <input type="range" id="subjective_energy" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-3 input-trigger" oninput="document.getElementById('energy_val_display').innerText = this.value + ' / 10'">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Daily Feedback</label>
+                        <textarea id="daily_feedback" rows="2" placeholder="General notes & adjustments..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50 input-trigger"></textarea>
                     </div>
                 </div>
             </div>
@@ -88,95 +106,97 @@
             <div id="section_hayfever" class="glass-card p-6 border-t-4 border-emerald-500">
                 <h2 class="text-xl font-bold text-emerald-800 mb-4 flex items-center"><span class="text-2xl mr-2">🌿</span> HayFever Tracking</h2>
                 
-                <!-- Macro Environment First -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-emerald-50 p-4 rounded-lg border border-emerald-100">
                     <div>
                         <label class="block text-sm font-semibold text-emerald-800 mb-1">Postcode Prefix</label>
-                        <input type="text" id="postcode_prefix" placeholder="e.g. SK9" class="w-full p-2 border border-emerald-200 rounded focus:ring-2 focus:ring-emerald-500">
+                        <input type="text" id="postcode_prefix" placeholder="e.g. SK9" class="w-full p-2 border border-emerald-200 rounded focus:ring-2 focus:ring-emerald-500 input-trigger">
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-emerald-800 mb-1">Pollen Level</label>
-                        <select id="pollen_count_level" class="w-full p-2 border border-emerald-200 rounded focus:ring-2 focus:ring-emerald-500">
+                        <select id="pollen_count_level" class="w-full p-2 border border-emerald-200 rounded focus:ring-2 focus:ring-emerald-500 input-trigger">
                             <option value="">Select Level...</option>
                             <option value="Low">Low</option><option value="Moderate">Moderate</option><option value="High">High</option><option value="Very High">Very High</option>
                         </select>
                     </div>
                 </div>
                 
-                <!-- Symptoms -->
                 <div class="mb-6">
                     <label class="block text-sm font-bold text-gray-700 mb-3">Symptoms Present Today:</label>
                     <div class="flex flex-wrap gap-3">
-                        <div class="relative"><input type="checkbox" id="sym_sneezing" value="Sneezing" class="symptom-check hidden"><label for="sym_sneezing" class="cursor-pointer px-4 py-2 rounded-full border-2 border-blue-300 bg-blue-50 text-blue-800 font-bold transition-all text-sm block">🤧 Sneezing</label></div>
-                        <div class="relative"><input type="checkbox" id="sym_runny" value="Runny Nose" class="symptom-check hidden"><label for="sym_runny" class="cursor-pointer px-4 py-2 rounded-full border-2 border-cyan-300 bg-cyan-50 text-cyan-800 font-bold transition-all text-sm block">💧 Runny Nose</label></div>
-                        <div class="relative"><input type="checkbox" id="sym_eyes" value="Itchy Eyes" class="symptom-check hidden"><label for="sym_eyes" class="cursor-pointer px-4 py-2 rounded-full border-2 border-pink-300 bg-pink-50 text-pink-800 font-bold transition-all text-sm block">👁️ Itchy Eyes</label></div>
-                        <div class="relative"><input type="checkbox" id="sym_headache" value="Headache" class="symptom-check hidden"><label for="sym_headache" class="cursor-pointer px-4 py-2 rounded-full border-2 border-red-300 bg-red-50 text-red-800 font-bold transition-all text-sm block">🤕 Headache</label></div>
-                        <div class="relative"><input type="checkbox" id="sym_weary" value="Weariness" class="symptom-check hidden"><label for="sym_weary" class="cursor-pointer px-4 py-2 rounded-full border-2 border-purple-300 bg-purple-50 text-purple-800 font-bold transition-all text-sm block">🥱 Weariness</label></div>
+                        <div class="relative"><input type="checkbox" id="sym_sneezing" value="Sneezing" class="symptom-check hidden input-trigger"><label for="sym_sneezing" class="cursor-pointer px-4 py-2 rounded-full border-2 border-blue-300 bg-blue-50 text-blue-800 font-bold transition-all text-sm block">🤧 Sneezing</label></div>
+                        <div class="relative"><input type="checkbox" id="sym_runny" value="Runny Nose" class="symptom-check hidden input-trigger"><label for="sym_runny" class="cursor-pointer px-4 py-2 rounded-full border-2 border-cyan-300 bg-cyan-50 text-cyan-800 font-bold transition-all text-sm block">💧 Runny Nose</label></div>
+                        <div class="relative"><input type="checkbox" id="sym_eyes" value="Itchy Eyes" class="symptom-check hidden input-trigger"><label for="sym_eyes" class="cursor-pointer px-4 py-2 rounded-full border-2 border-pink-300 bg-pink-50 text-pink-800 font-bold transition-all text-sm block">👁️ Itchy Eyes</label></div>
+                        <div class="relative"><input type="checkbox" id="sym_headache" value="Headache" class="symptom-check hidden input-trigger"><label for="sym_headache" class="cursor-pointer px-4 py-2 rounded-full border-2 border-red-300 bg-red-50 text-red-800 font-bold transition-all text-sm block">🤕 Headache</label></div>
+                        <div class="relative"><input type="checkbox" id="sym_weary" value="Weariness" class="symptom-check hidden input-trigger"><label for="sym_weary" class="cursor-pointer px-4 py-2 rounded-full border-2 border-purple-300 bg-purple-50 text-purple-800 font-bold transition-all text-sm block">🥱 Weariness</label></div>
                     </div>
                 </div>
 
                 <div class="mb-6">
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Duration of Symptoms</label>
-                    <input type="text" id="hayfever_duration_raw" placeholder="e.g., 5h or 90m" class="w-full md:w-1/2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 font-bold bg-gray-50">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Total Symptom Duration</label>
+                    <div class="duration-widget flex items-center space-x-2 w-full md:w-1/2">
+                        <input type="number" id="hayfever_dur_hrs" min="0" max="24" placeholder="0" class="w-20 p-2 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-emerald-500 input-trigger">
+                        <span class="text-sm font-medium text-gray-600">hrs</span>
+                        <input type="number" id="hayfever_dur_mins" min="0" max="59" placeholder="0" class="w-20 p-2 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-emerald-500 input-trigger">
+                        <span class="text-sm font-medium text-gray-600">mins</span>
+                    </div>
                 </div>
 
-                <!-- Interventions -->
                 <div class="border-t border-gray-200 pt-4">
                     <label class="block text-sm font-bold text-gray-700 mb-3">Interventions & Products Used (1=Poor, 5=Great):</label>
                     <div class="space-y-4">
-                        <!-- Repeated for each intervention -->
-                        <div class="flex flex-col md:flex-row md:items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex items-center space-x-4 w-40 mb-2 md:mb-0">
-                                <input type="checkbox" id="int_eyedrops" value="Eyedrops" class="intervention-check w-5 h-5 text-emerald-600 rounded">
+                        <!-- JS Toggled Interventions -->
+                        <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-center space-x-4">
+                                <input type="checkbox" id="int_eyedrops" value="Eyedrops" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('eyedrops')">
                                 <label class="font-bold text-gray-700">Eyedrops</label>
                             </div>
-                            <div class="intervention-extras flex-col md:flex-row md:items-center flex-1 space-y-2 md:space-y-0 md:space-x-4">
-                                <input type="text" id="prod_eyedrops" placeholder="Product (e.g. Hycosan)" class="p-2 border border-gray-300 rounded text-sm flex-1">
+                            <div id="extras_eyedrops" class="hidden mt-3 flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 pl-9">
+                                <input type="text" id="prod_eyedrops" placeholder="Product (e.g. Hycosan)" class="p-2 border border-gray-300 rounded text-sm flex-1 input-trigger">
                                 <div class="flex items-center space-x-2 bg-white px-3 py-1 rounded shadow-sm border border-gray-200">
                                     <span class="text-xs font-bold text-gray-400">Rate:</span>
-                                    <input type="range" id="rate_eyedrops" min="1" max="5" value="3" class="w-24"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
+                                    <input type="range" id="rate_eyedrops" min="1" max="5" value="3" class="w-24 input-trigger" oninput="this.nextElementSibling.innerText = this.value"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="flex flex-col md:flex-row md:items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex items-center space-x-4 w-40 mb-2 md:mb-0">
-                                <input type="checkbox" id="int_sunglasses" value="Sunglasses" class="intervention-check w-5 h-5 text-emerald-600 rounded">
+                        <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-center space-x-4">
+                                <input type="checkbox" id="int_sunglasses" value="Sunglasses" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('sunglasses')">
                                 <label class="font-bold text-gray-700">Sunglasses</label>
                             </div>
-                            <div class="intervention-extras flex-col md:flex-row md:items-center flex-1 space-y-2 md:space-y-0 md:space-x-4">
-                                <input type="text" id="prod_sunglasses" placeholder="Brand/Style (optional)" class="p-2 border border-gray-300 rounded text-sm flex-1">
+                            <div id="extras_sunglasses" class="hidden mt-3 flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 pl-9">
+                                <input type="text" id="prod_sunglasses" placeholder="Brand/Style (optional)" class="p-2 border border-gray-300 rounded text-sm flex-1 input-trigger">
                                 <div class="flex items-center space-x-2 bg-white px-3 py-1 rounded shadow-sm border border-gray-200">
                                     <span class="text-xs font-bold text-gray-400">Rate:</span>
-                                    <input type="range" id="rate_sunglasses" min="1" max="5" value="3" class="w-24"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
+                                    <input type="range" id="rate_sunglasses" min="1" max="5" value="3" class="w-24 input-trigger" oninput="this.nextElementSibling.innerText = this.value"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="flex flex-col md:flex-row md:items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex items-center space-x-4 w-40 mb-2 md:mb-0">
-                                <input type="checkbox" id="int_spray" value="Nasal Spray" class="intervention-check w-5 h-5 text-emerald-600 rounded">
+                        <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-center space-x-4">
+                                <input type="checkbox" id="int_spray" value="Nasal Spray" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('spray')">
                                 <label class="font-bold text-gray-700">Spray</label>
                             </div>
-                            <div class="intervention-extras flex-col md:flex-row md:items-center flex-1 space-y-2 md:space-y-0 md:space-x-4">
-                                <input type="text" id="prod_spray" placeholder="Product name..." class="p-2 border border-gray-300 rounded text-sm flex-1">
+                            <div id="extras_spray" class="hidden mt-3 flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 pl-9">
+                                <input type="text" id="prod_spray" placeholder="Product name..." class="p-2 border border-gray-300 rounded text-sm flex-1 input-trigger">
                                 <div class="flex items-center space-x-2 bg-white px-3 py-1 rounded shadow-sm border border-gray-200">
                                     <span class="text-xs font-bold text-gray-400">Rate:</span>
-                                    <input type="range" id="rate_spray" min="1" max="5" value="3" class="w-24"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
+                                    <input type="range" id="rate_spray" min="1" max="5" value="3" class="w-24 input-trigger" oninput="this.nextElementSibling.innerText = this.value"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="flex flex-col md:flex-row md:items-center p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex items-center space-x-4 w-40 mb-2 md:mb-0">
-                                <input type="checkbox" id="int_tablets" value="Tablets" class="intervention-check w-5 h-5 text-emerald-600 rounded">
+                        <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div class="flex items-center space-x-4">
+                                <input type="checkbox" id="int_tablets" value="Tablets" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('tablets')">
                                 <label class="font-bold text-gray-700">Tablets</label>
                             </div>
-                            <div class="intervention-extras flex-col md:flex-row md:items-center flex-1 space-y-2 md:space-y-0 md:space-x-4">
-                                <input type="text" id="prod_tablets" placeholder="Product name..." class="p-2 border border-gray-300 rounded text-sm flex-1">
+                            <div id="extras_tablets" class="hidden mt-3 flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 pl-9">
+                                <input type="text" id="prod_tablets" placeholder="Product name..." class="p-2 border border-gray-300 rounded text-sm flex-1 input-trigger">
                                 <div class="flex items-center space-x-2 bg-white px-3 py-1 rounded shadow-sm border border-gray-200">
                                     <span class="text-xs font-bold text-gray-400">Rate:</span>
-                                    <input type="range" id="rate_tablets" min="1" max="5" value="3" class="w-24"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
+                                    <input type="range" id="rate_tablets" min="1" max="5" value="3" class="w-24 input-trigger" oninput="this.nextElementSibling.innerText = this.value"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
                                 </div>
                             </div>
                         </div>
@@ -195,35 +215,35 @@
                     <!-- Dynamic Rows Injected Here -->
                 </div>
             </div>
-
-            <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-black text-xl p-4 rounded-xl shadow-lg hover:from-yellow-600 hover:to-orange-600 transition-all transform hover:scale-[1.01] border-2 border-orange-600">
-                UPDATE DATABASE FOR SELECTED DATE
-            </button>
-            <div id="statusMessage" class="text-center font-bold mt-4 hidden"></div>
         </form>
     </div>
 
     <!-- Template for Symptom Row -->
     <template id="symptomRowTemplate">
         <div class="symptom-row bg-rose-50/50 p-4 rounded-lg border border-rose-100 relative">
-            <button type="button" onclick="this.closest('.symptom-row').remove()" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xl font-bold">&times;</button>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3 pr-6">
+            <button type="button" onclick="this.closest('.symptom-row').remove(); queueAutoSave();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xl font-bold">&times;</button>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3 pr-6">
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Symptom</label>
-                    <input type="text" class="sym-desc w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500" placeholder="e.g. Migraine">
+                    <input type="text" class="sym-desc w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500 input-trigger" placeholder="e.g. Migraine">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-600 mb-1">Suspected Cause</label>
-                    <input type="text" class="sym-cause w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500" placeholder="e.g. Alcohol">
+                    <input type="text" class="sym-cause w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500 input-trigger" placeholder="e.g. Alcohol">
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Duration (Hours)</label>
-                    <input type="number" step="0.1" class="sym-dur w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500" placeholder="e.g. 4.5">
+            </div>
+            <div class="mb-3 pr-6">
+                <label class="block text-xs font-semibold text-gray-600 mb-1">Duration</label>
+                <div class="duration-widget flex items-center space-x-2">
+                    <input type="number" class="sym-dur-hrs w-16 p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" min="0" placeholder="0">
+                    <span class="text-xs font-medium text-gray-600">h</span>
+                    <input type="number" class="sym-dur-mins w-16 p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" min="0" max="59" placeholder="0">
+                    <span class="text-xs font-medium text-gray-600">m</span>
                 </div>
             </div>
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Detailed Comment / Notes</label>
-                <textarea class="sym-comment w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500" rows="2" placeholder="Add additional context..."></textarea>
+                <textarea class="sym-comment w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500 input-trigger" rows="2" placeholder="Add additional context..."></textarea>
             </div>
         </div>
     </template>
@@ -231,66 +251,129 @@
     <script>
         // REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNwr_7iZJuOVdT9u1xHNy9sYEKHjFyJtZ6Q-pDui-Y4qTpLQdi4NT2NiUcoBxwUFDgmA/exec';
+       
+        let isProgrammaticUpdate = false;
+        let autoSaveTimer = null;
 
-        // UI Logic for Sliders
-        document.querySelectorAll('input[type=range]').forEach(slider => {
-            slider.addEventListener('input', (e) => e.target.nextElementSibling.innerText = e.target.value);
+        // --- UI Interactions ---
+        function toggleInterventionExtras(id) {
+            const checkbox = document.getElementById('int_' + id);
+            const extras = document.getElementById('extras_' + id);
+            if (checkbox.checked) {
+                extras.classList.remove('hidden');
+                extras.classList.add('flex');
+            } else {
+                extras.classList.remove('flex');
+                extras.classList.add('hidden');
+            }
+        }
+
+        function roundToNearest10(inputElem) {
+            if(!inputElem.value) return;
+            let [hours, mins] = inputElem.value.split(':').map(Number);
+            let totalMins = hours * 60 + mins;
+            let roundedMins = Math.round(totalMins / 10) * 10;
+            let finalHours = Math.floor(roundedMins / 60) % 24;
+            let finalM = roundedMins % 60;
+            inputElem.value = `${String(finalHours).padStart(2, '0')}:${String(finalM).padStart(2, '0')}`;
+        }
+
+        // --- Data Conversion Helpers ---
+        function parseToMinutes(hrs, mins) {
+            let h = parseInt(hrs) || 0;
+            let m = parseInt(mins) || 0;
+            return (h * 60) + m;
+        }
+
+        function populateDurationWidget(totalMins, hrsId, minsId) {
+            if (!totalMins) {
+                document.getElementById(hrsId).value = '';
+                document.getElementById(minsId).value = '';
+                return;
+            }
+            let h = Math.floor(totalMins / 60);
+            let m = totalMins % 60;
+            document.getElementById(hrsId).value = h > 0 ? h : '';
+            document.getElementById(minsId).value = m > 0 ? m : '';
+        }
+
+        function populateRowDurationWidget(row, totalHrsDecimal) {
+            if (!totalHrsDecimal) return;
+            let totalMins = Math.round(parseFloat(totalHrsDecimal) * 60);
+            let h = Math.floor(totalMins / 60);
+            let m = totalMins % 60;
+            row.querySelector('.sym-dur-hrs').value = h > 0 ? h : '';
+            row.querySelector('.sym-dur-mins').value = m > 0 ? m : '';
+        }
+
+        // --- State Management & Fetching ---
+        function changeDate(daysOffset) {
+            // Force an immediate save of current data before switching dates
+            commitDataToEcosystem().then(() => {
+                let dateInput = document.getElementById('record_date');
+                let currentDate = new Date(dateInput.value);
+                currentDate.setDate(currentDate.getDate() + daysOffset);
+                dateInput.valueAsDate = currentDate;
+                fetchDataForDate(dateInput.value);
+            });
+        }
+
+        document.getElementById('record_date').addEventListener('change', (e) => {
+            fetchDataForDate(e.target.value);
         });
 
-        function parseDuration(val) {
-            val = val.trim().toLowerCase();
-            if (!val) return "";
-            if (val.includes('h')) return parseFloat(val) * 60;
-            if (val.includes('m')) return parseInt(val);
-            return parseInt(val); 
-        }
-
-        function changeDate(daysOffset) {
-            let dateInput = document.getElementById('record_date');
-            let currentDate = new Date(dateInput.value);
-            currentDate.setDate(currentDate.getDate() + daysOffset);
-            dateInput.valueAsDate = currentDate;
-            fetchDataForDate(dateInput.value);
-        }
-
-        document.getElementById('record_date').addEventListener('change', (e) => fetchDataForDate(e.target.value));
-
-        // Dynamic Symptom Rows
-        function addSymptomRow(desc = '', cause = '', dur = '', comment = '') {
+        function addSymptomRow(desc = '', cause = '', durDecimal = '', comment = '') {
             const container = document.getElementById('symptomsContainer');
             const template = document.getElementById('symptomRowTemplate');
             const clone = template.content.cloneNode(true);
             
             clone.querySelector('.sym-desc').value = desc;
             clone.querySelector('.sym-cause').value = cause;
-            clone.querySelector('.sym-dur').value = dur;
             clone.querySelector('.sym-comment').value = comment;
+            populateRowDurationWidget(clone, durDecimal);
+            
+            // Attach auto-save listeners to the new row
+            clone.querySelectorAll('.input-trigger').forEach(input => {
+                input.addEventListener('input', queueAutoSave);
+                input.addEventListener('change', queueAutoSave);
+            });
             
             container.appendChild(clone);
+            if(!isProgrammaticUpdate) queueAutoSave();
         }
 
         function fetchDataForDate(dateStr) {
-            const fetchStatus = document.getElementById('fetchStatus');
-            fetchStatus.innerText = "Loading data...";
+            isProgrammaticUpdate = true; // Disable autosave while populating
+            showToast("Loading...", "⏳");
             
             // Clear Form
             document.getElementById('ambient_temp_celsius').value = '';
             document.getElementById('sleep_debt_manual').value = '';
+            document.getElementById('subjective_energy').value = 5;
+            document.getElementById('energy_val_display').innerText = '5 / 10';
+            document.getElementById('daily_feedback').value = '';
             document.querySelectorAll('.symptom-check').forEach(cb => cb.checked = false);
-            document.querySelectorAll('.intervention-check').forEach(cb => cb.checked = false);
+            document.querySelectorAll('input[id^="int_"]').forEach(cb => { cb.checked = false; toggleInterventionExtras(cb.id.split('_')[1]); });
             document.querySelectorAll('input[id^="prod_"]').forEach(inp => inp.value = '');
-            document.getElementById('hayfever_duration_raw').value = '';
+            document.querySelectorAll('input[id^="rate_"]').forEach(inp => { inp.value = 3; inp.nextElementSibling.innerText = '3'; });
+            document.getElementById('hayfever_dur_hrs').value = '';
+            document.getElementById('hayfever_dur_mins').value = '';
             document.getElementById('postcode_prefix').value = '';
             document.getElementById('pollen_count_level').value = '';
-            document.getElementById('symptomsContainer').innerHTML = ''; // Clear dynamic rows
+            document.getElementById('symptomsContainer').innerHTML = '';
 
             fetch(`${GOOGLE_SCRIPT_URL}?date=${dateStr}`)
                 .then(res => res.json())
                 .then(data => {
-                    fetchStatus.innerText = "Data loaded."; setTimeout(() => fetchStatus.innerText = "", 2000);
+                    hideToast();
                     
                     if(data.data.metrics) {
                         document.getElementById('ambient_temp_celsius').value = data.data.metrics[6] || '';
+                        if(data.data.metrics[11]) {
+                            document.getElementById('subjective_energy').value = data.data.metrics[11];
+                            document.getElementById('energy_val_display').innerText = data.data.metrics[11] + ' / 10';
+                        }
+                        document.getElementById('daily_feedback').value = data.data.metrics[13] || '';
                         document.getElementById('sleep_debt_manual').value = data.data.metrics[15] || '';
                     }
                     if(data.data.hayfever) {
@@ -300,15 +383,15 @@
                         let symptoms = data.data.hayfever[3] || "";
                         document.querySelectorAll('.symptom-check').forEach(cb => { if(symptoms.includes(cb.value)) cb.checked = true; });
                         
-                        document.getElementById('hayfever_duration_raw').value = data.data.hayfever[4] ? data.data.hayfever[4] + 'm' : '';
+                        populateDurationWidget(data.data.hayfever[4], 'hayfever_dur_hrs', 'hayfever_dur_mins');
                         
                         let interventions = data.data.hayfever[5] || "";
-                        document.querySelectorAll('.intervention-check').forEach(cb => {
+                        document.querySelectorAll('input[id^="int_"]').forEach(cb => {
                             if(interventions.includes(cb.value)) {
                                 cb.checked = true;
                                 let idSuffix = cb.id.split('_')[1];
+                                toggleInterventionExtras(idSuffix);
                                 
-                                // Regex to pull Product and Score: e.g. "Eyedrops [Hycosan] (4/5)"
                                 let match = interventions.match(new RegExp(cb.value + "\\s*(?:\\[(.*?)\\])?\\s*\\((\\d)"));
                                 if(match) {
                                     if(match[1]) document.getElementById('prod_' + idSuffix).value = match[1];
@@ -321,22 +404,108 @@
                         });
                     }
                     
-                    // Populate Multiple General Symptoms
                     if(data.data.symptoms && data.data.symptoms.length > 0) {
-                        data.data.symptoms.forEach(sym => {
-                            // Backend Cols: Date(0) | Desc(1) | Cause(2) | Dur(3) | Timestamp(4) | Comment(5)
-                            addSymptomRow(sym[1], sym[2], sym[3], sym[5]);
-                        });
+                        data.data.symptoms.forEach(sym => addSymptomRow(sym[1], sym[2], sym[3], sym[5]));
                     } else {
-                        addSymptomRow(); // Add one blank row by default
+                        addSymptomRow();
                     }
+                    
+                    setTimeout(() => { isProgrammaticUpdate = false; }, 500); // Re-enable autosave
                 })
-                .catch(err => fetchStatus.innerText = "Failed to load.");
+                .catch(err => { showToast("Failed to load", "❌"); setTimeout(hideToast, 3000); isProgrammaticUpdate = false; });
         }
 
+        // --- Auto-Save Engine ---
+        function showToast(text, icon) {
+            const toast = document.getElementById('syncToast');
+            document.getElementById('syncToastText').innerText = text;
+            document.getElementById('syncToastIcon').innerText = icon;
+            toast.classList.remove('opacity-0');
+        }
+        function hideToast() { document.getElementById('syncToast').classList.add('opacity-0'); }
+
+        function queueAutoSave() {
+            if (isProgrammaticUpdate) return;
+            clearTimeout(autoSaveTimer);
+            showToast("Pending save...", "⏳");
+            autoSaveTimer = setTimeout(commitDataToEcosystem, 1500); // Wait 1.5s after user stops typing
+        }
+
+        function commitDataToEcosystem() {
+            return new Promise((resolve, reject) => {
+                showToast("Saving...", "🔄");
+
+                let selectedSymptoms = [];
+                document.querySelectorAll('.symptom-check:checked').forEach(cb => selectedSymptoms.push(cb.value));
+                
+                let selectedInterventions = [];
+                document.querySelectorAll('input[id^="int_"]:checked').forEach(cb => {
+                    let idSuffix = cb.id.split('_')[1];
+                    let rating = document.getElementById('rate_' + idSuffix).value;
+                    let prod = document.getElementById('prod_' + idSuffix).value;
+                    let prodStr = prod ? ` [${prod}]` : "";
+                    selectedInterventions.push(`${cb.value}${prodStr} (${rating}/5)`);
+                });
+
+                let generalSymptomsArray = [];
+                document.querySelectorAll('.symptom-row').forEach(row => {
+                    let desc = row.querySelector('.sym-desc').value.trim();
+                    let cause = row.querySelector('.sym-cause').value.trim();
+                    let h = parseInt(row.querySelector('.sym-dur-hrs').value) || 0;
+                    let m = parseInt(row.querySelector('.sym-dur-mins').value) || 0;
+                    let totalHoursDecimal = h + (m / 60);
+
+                    if (desc || cause) {
+                        generalSymptomsArray.push({
+                            description: desc,
+                            cause: cause,
+                            duration: totalHoursDecimal > 0 ? totalHoursDecimal.toFixed(2) : "", // Backend expects hours for symptoms
+                            comment: row.querySelector('.sym-comment').value
+                        });
+                    }
+                });
+
+                const payload = {
+                    record_date: document.getElementById('record_date').value,
+                    ambient_temp_celsius: document.getElementById('ambient_temp_celsius').value,
+                    sleep_debt_manual: document.getElementById('sleep_debt_manual').value,
+                    subjective_energy: document.getElementById('subjective_energy').value,
+                    daily_feedback: document.getElementById('daily_feedback').value,
+                    
+                    hayfever_symptoms: selectedSymptoms.join(", "),
+                    hayfever_duration_mins: parseToMinutes(document.getElementById('hayfever_dur_hrs').value, document.getElementById('hayfever_dur_mins').value),
+                    postcode_prefix: document.getElementById('postcode_prefix').value,
+                    pollen_count_level: document.getElementById('pollen_count_level').value,
+                    allergy_interventions_with_success: selectedInterventions.join(", "),
+                    
+                    general_symptoms_array: generalSymptomsArray
+                };
+
+                fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.status === "success") {
+                        showToast("Saved", "✅");
+                        setTimeout(hideToast, 2500);
+                        resolve();
+                    } else throw new Error(data.message);
+                })
+                .catch((error) => {
+                    showToast("Failed to save", "❌");
+                    reject(error);
+                });
+            });
+        }
+
+        // --- Initialization ---
         window.addEventListener('DOMContentLoaded', () => {
-            let today = new Date();
-            document.getElementById('record_date').valueAsDate = today;
+            document.getElementById('record_date').valueAsDate = new Date();
+
+            // Bind auto-save to all static inputs
+            document.querySelectorAll('.input-trigger').forEach(input => {
+                input.addEventListener('input', queueAutoSave);
+                input.addEventListener('change', queueAutoSave);
+            });
 
             fetch(GOOGLE_SCRIPT_URL)
                 .then(res => res.json())
@@ -352,79 +521,6 @@
                     fetchDataForDate(document.getElementById('record_date').value);
                 });
         });
-
-        document.getElementById('healthspanForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const btn = document.getElementById('submitBtn');
-            const statusMsg = document.getElementById('statusMessage');
-            btn.innerText = 'Syncing...'; btn.disabled = true; statusMsg.classList.add('hidden');
-
-            let selectedSymptoms = [];
-            document.querySelectorAll('.symptom-check:checked').forEach(cb => selectedSymptoms.push(cb.value));
-            
-            let selectedInterventions = [];
-            document.querySelectorAll('.intervention-check:checked').forEach(cb => {
-                let idSuffix = cb.id.split('_')[1];
-                let rating = document.getElementById('rate_' + idSuffix).value;
-                let prod = document.getElementById('prod_' + idSuffix).value;
-                let prodStr = prod ? ` [${prod}]` : "";
-                selectedInterventions.push(`${cb.value}${prodStr} (${rating}/5)`);
-            });
-
-            // Gather Dynamic Symptoms
-            let generalSymptomsArray = [];
-            document.querySelectorAll('.symptom-row').forEach(row => {
-                let desc = row.querySelector('.sym-desc').value.trim();
-                let cause = row.querySelector('.sym-cause').value.trim();
-                if (desc || cause) {
-                    generalSymptomsArray.push({
-                        description: desc,
-                        cause: cause,
-                        duration: row.querySelector('.sym-dur').value,
-                        comment: row.querySelector('.sym-comment').value
-                    });
-                }
-            });
-
-            const payload = {
-                record_date: document.getElementById('record_date').value,
-                ambient_temp_celsius: document.getElementById('ambient_temp_celsius').value,
-                sleep_debt_manual: document.getElementById('sleep_debt_manual').value,
-                
-                hayfever_symptoms: selectedSymptoms.join(", "),
-                hayfever_duration_mins: parseDuration(document.getElementById('hayfever_duration_raw').value),
-                postcode_prefix: document.getElementById('postcode_prefix').value,
-                pollen_count_level: document.getElementById('pollen_count_level').value,
-                allergy_interventions_with_success: selectedInterventions.join(", "),
-                
-                general_symptoms_array: generalSymptomsArray
-            };
-
-            fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === "success") {
-                    statusMsg.innerText = '✅ Saved to Ecosystem';
-                    statusMsg.className = "text-center font-bold mt-4 text-emerald-800 bg-emerald-100 border border-emerald-400 p-3 rounded-lg block";
-                } else throw new Error(data.message);
-            })
-            .catch((error) => {
-                statusMsg.innerText = `❌ Failed: ${error.message}`;
-                statusMsg.className = "text-center font-bold mt-4 text-rose-800 bg-rose-100 border border-rose-400 p-3 rounded-lg block";
-            })
-            .finally(() => { btn.innerText = 'UPDATE DATABASE FOR SELECTED DATE'; btn.disabled = false; });
-        });
-        
-    </script>
-    <!-- Register Service Worker -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then((reg) => console.log('Service Worker registered.', reg))
-                    .catch((err) => console.error('Service Worker registration failed:', err));
-            });
-        }
     </script>
 </body>
 </html>

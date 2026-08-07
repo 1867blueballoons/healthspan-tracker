@@ -1,9 +1,8 @@
 // Healthspan Metrics Google Sheet
 // SAVE THIS
 // const SPREADSHEET_ID = '1EfWXl1Qs7z9i3DtTirZlToIKdBwBgiie6etpaoPObig'; // <-- Double check this!
-
-// Code.gs - Backend v1.4
-const SPREADSHEET_ID = '1EfWXl1Qs7z9i3DtTirZlToIKdBwBgiie6etpaoPObig';
+// Code.gs - Backend v1.8
+const SPREADSHEET_ID = '1EfWXl1Qs7z9i3DtTirZlToIKdBwBgiie6etpaoPObig'; // <-- Double check this!
 
 function doGet(e) {
   try {
@@ -14,13 +13,12 @@ function doGet(e) {
     if (e.parameter.date) {
       const targetDateStr = new Date(e.parameter.date).toDateString();
       
-      // Fetch Supplement Logging (1-to-1)
+      // Fetch Supplement Logging
       if (sheets.includes("Supplement_Tracking_Log")) {
         const data = ss.getSheetByName("Supplement_Tracking_Log").getDataRange().getValues();
         for (let i = 1; i < data.length; i++) {
           if (new Date(data[i][0]).toDateString() === targetDateStr) {
             let row = data[i];
-            // Format Sleep Debt (Col P / index 15) if it's a Date object
             if (row[15] instanceof Date) {
               let h = row[15].getHours().toString().padStart(2, '0');
               let m = row[15].getMinutes().toString().padStart(2, '0');
@@ -32,7 +30,7 @@ function doGet(e) {
         }
       }
 
-      // Fetch HayFever (1-to-1)
+      // Fetch HayFever
       if (sheets.includes("HayFever")) {
         const data = ss.getSheetByName("HayFever").getDataRange().getValues();
         for (let i = 1; i < data.length; i++) {
@@ -43,7 +41,7 @@ function doGet(e) {
         }
       }
 
-      // Fetch General Symptoms (1-to-Many)
+      // Fetch General Symptoms
       if (sheets.includes("GeneralSymptoms")) {
         const data = ss.getSheetByName("GeneralSymptoms").getDataRange().getValues();
         let symptomsArray = [];
@@ -55,7 +53,6 @@ function doGet(e) {
         responseData.data.symptoms = symptomsArray;
       }
     }
-    
     return ContentService.createTextOutput(JSON.stringify(responseData)).setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({ error: error.message, status: "failed" })).setMimeType(ContentService.MimeType.JSON);
@@ -83,16 +80,22 @@ function doPost(e) {
       else insertCallback(sheet);
     };
 
-    // 1. Supplement_Tracking_Log
-    if (data.ambient_temp_celsius || data.sleep_debt_manual) {
+    // 1. Supplement_Tracking_Log (Now includes Energy and Feedback)
+    if (data.ambient_temp_celsius || data.sleep_debt_manual || data.subjective_energy || data.daily_feedback) {
       upsertRow("Supplement_Tracking_Log", entryDate, 
         (sheet, row) => {
           if (data.ambient_temp_celsius) sheet.getRange(row, 7).setValue(data.ambient_temp_celsius);
+          if (data.subjective_energy) sheet.getRange(row, 12).setValue(data.subjective_energy); // Col L (Index 11)
+          if (data.daily_feedback) sheet.getRange(row, 14).setValue(data.daily_feedback);       // Col N (Index 13)
           if (data.sleep_debt_manual) sheet.getRange(row, 16).setValue(data.sleep_debt_manual);
         },
         (sheet) => {
           let newRow = new Array(16).fill("");
-          newRow[0] = entryDate; newRow[6] = data.ambient_temp_celsius; newRow[15] = data.sleep_debt_manual;
+          newRow[0] = entryDate; 
+          newRow[6] = data.ambient_temp_celsius; 
+          newRow[11] = data.subjective_energy;
+          newRow[13] = data.daily_feedback;
+          newRow[15] = data.sleep_debt_manual;
           sheet.appendRow(newRow);
         }
       );
@@ -108,20 +111,17 @@ function doPost(e) {
       );
     }
 
-    // 3. General Symptoms (1-to-Many logic)
+    // 3. General Symptoms
     const symSheet = ss.getSheetByName("GeneralSymptoms");
     if (symSheet && data.general_symptoms_array) {
-      // Step A: Delete existing rows for this date (loop backwards to avoid index shifting)
       const symData = symSheet.getDataRange().getValues();
       for (let i = symData.length - 1; i > 0; i--) {
         if (symData[i][0] && new Date(symData[i][0]).toDateString() === new Date(entryDate).toDateString()) {
           symSheet.deleteRow(i + 1);
         }
       }
-      // Step B: Append all submitted symptoms for this date
       data.general_symptoms_array.forEach(sym => {
         if (sym.description || sym.cause) {
-          // Columns: Date | Symptom | Cause | Duration | Timestamp | Comment
           symSheet.appendRow([entryDate, sym.description, sym.cause, sym.duration, timestamp, sym.comment]);
         }
       });
