@@ -251,9 +251,12 @@
     <script>
         // REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNwr_7iZJuOVdT9u1xHNy9sYEKHjFyJtZ6Q-pDui-Y4qTpLQdi4NT2NiUcoBxwUFDgmA/exec';
-       
+        
         let isProgrammaticUpdate = false;
         let autoSaveTimer = null;
+        
+        // The Master Local Cache
+        let globalDataCache = JSON.parse(localStorage.getItem('healthspan_cache')) || {};
 
         // --- UI Interactions ---
         function toggleInterventionExtras(id) {
@@ -278,7 +281,6 @@
             inputElem.value = `${String(finalHours).padStart(2, '0')}:${String(finalM).padStart(2, '0')}`;
         }
 
-        // --- Data Conversion Helpers ---
         function parseToMinutes(hrs, mins) {
             let h = parseInt(hrs) || 0;
             let m = parseInt(mins) || 0;
@@ -308,18 +310,21 @@
 
         // --- State Management & Fetching ---
         function changeDate(daysOffset) {
-            // Force an immediate save of current data before switching dates
-            commitDataToEcosystem().then(() => {
-                let dateInput = document.getElementById('record_date');
-                let currentDate = new Date(dateInput.value);
-                currentDate.setDate(currentDate.getDate() + daysOffset);
-                dateInput.valueAsDate = currentDate;
-                fetchDataForDate(dateInput.value);
-            });
+            // Instantly queue save, then switch date (No awaiting!)
+            if (!isProgrammaticUpdate) commitDataToEcosystem(); 
+            
+            let dateInput = document.getElementById('record_date');
+            let currentDate = new Date(dateInput.value);
+            currentDate.setDate(currentDate.getDate() + daysOffset);
+            dateInput.valueAsDate = currentDate;
+            
+            // Instantly render from local cache
+            renderDateFromCache(dateInput.value);
         }
 
         document.getElementById('record_date').addEventListener('change', (e) => {
-            fetchDataForDate(e.target.value);
+            if (!isProgrammaticUpdate) commitDataToEcosystem();
+            renderDateFromCache(e.target.value);
         });
 
         function addSymptomRow(desc = '', cause = '', durDecimal = '', comment = '') {
@@ -332,7 +337,6 @@
             clone.querySelector('.sym-comment').value = comment;
             populateRowDurationWidget(clone, durDecimal);
             
-            // Attach auto-save listeners to the new row
             clone.querySelectorAll('.input-trigger').forEach(input => {
                 input.addEventListener('input', queueAutoSave);
                 input.addEventListener('change', queueAutoSave);
@@ -342,9 +346,10 @@
             if(!isProgrammaticUpdate) queueAutoSave();
         }
 
-        function fetchDataForDate(dateStr) {
-            isProgrammaticUpdate = true; // Disable autosave while populating
-            showToast("Loading...", "⏳");
+        // The core rendering engine (Reads from memory, not network)
+        function renderDateFromCache(dateStr) {
+            isProgrammaticUpdate = true;
+            let targetDateString = new Date(dateStr).toDateString();
             
             // Clear Form
             document.getElementById('ambient_temp_celsius').value = '';
@@ -362,57 +367,58 @@
             document.getElementById('pollen_count_level').value = '';
             document.getElementById('symptomsContainer').innerHTML = '';
 
-            fetch(`${GOOGLE_SCRIPT_URL}?date=${dateStr}`)
-                .then(res => res.json())
-                .then(data => {
-                    hideToast();
-                    
-                    if(data.data.metrics) {
-                        document.getElementById('ambient_temp_celsius').value = data.data.metrics[6] || '';
-                        if(data.data.metrics[11]) {
-                            document.getElementById('subjective_energy').value = data.data.metrics[11];
-                            document.getElementById('energy_val_display').innerText = data.data.metrics[11] + ' / 10';
-                        }
-                        document.getElementById('daily_feedback').value = data.data.metrics[13] || '';
-                        document.getElementById('sleep_debt_manual').value = data.data.metrics[15] || '';
+            // Inject Data if it exists in cache
+            let dayData = globalDataCache[targetDateString];
+            
+            if (dayData) {
+                if(dayData.metrics) {
+                    document.getElementById('ambient_temp_celsius').value = dayData.metrics[6] || '';
+                    if(dayData.metrics[11]) {
+                        document.getElementById('subjective_energy').value = dayData.metrics[11];
+                        document.getElementById('energy_val_display').innerText = dayData.metrics[11] + ' / 10';
                     }
-                    if(data.data.hayfever) {
-                        document.getElementById('postcode_prefix').value = data.data.hayfever[1] || '';
-                        document.getElementById('pollen_count_level').value = data.data.hayfever[2] || '';
-                        
-                        let symptoms = data.data.hayfever[3] || "";
-                        document.querySelectorAll('.symptom-check').forEach(cb => { if(symptoms.includes(cb.value)) cb.checked = true; });
-                        
-                        populateDurationWidget(data.data.hayfever[4], 'hayfever_dur_hrs', 'hayfever_dur_mins');
-                        
-                        let interventions = data.data.hayfever[5] || "";
-                        document.querySelectorAll('input[id^="int_"]').forEach(cb => {
-                            if(interventions.includes(cb.value)) {
-                                cb.checked = true;
-                                let idSuffix = cb.id.split('_')[1];
-                                toggleInterventionExtras(idSuffix);
-                                
-                                let match = interventions.match(new RegExp(cb.value + "\\s*(?:\\[(.*?)\\])?\\s*\\((\\d)"));
-                                if(match) {
-                                    if(match[1]) document.getElementById('prod_' + idSuffix).value = match[1];
-                                    if(match[2]) {
-                                        document.getElementById('rate_' + idSuffix).value = match[2];
-                                        document.getElementById('rate_' + idSuffix).nextElementSibling.innerText = match[2];
-                                    }
+                    document.getElementById('daily_feedback').value = dayData.metrics[13] || '';
+                    document.getElementById('sleep_debt_manual').value = dayData.metrics[15] || '';
+                }
+                
+                if(dayData.hayfever) {
+                    document.getElementById('postcode_prefix').value = dayData.hayfever[1] || '';
+                    document.getElementById('pollen_count_level').value = dayData.hayfever[2] || '';
+                    
+                    let symptoms = dayData.hayfever[3] || "";
+                    document.querySelectorAll('.symptom-check').forEach(cb => { if(symptoms.includes(cb.value)) cb.checked = true; });
+                    
+                    populateDurationWidget(dayData.hayfever[4], 'hayfever_dur_hrs', 'hayfever_dur_mins');
+                    
+                    let interventions = dayData.hayfever[5] || "";
+                    document.querySelectorAll('input[id^="int_"]').forEach(cb => {
+                        if(interventions.includes(cb.value)) {
+                            cb.checked = true;
+                            let idSuffix = cb.id.split('_')[1];
+                            toggleInterventionExtras(idSuffix);
+                            let match = interventions.match(new RegExp(cb.value + "\\s*(?:\\[(.*?)\\])?\\s*\\((\\d)"));
+                            if(match) {
+                                if(match[1]) document.getElementById('prod_' + idSuffix).value = match[1];
+                                if(match[2]) {
+                                    document.getElementById('rate_' + idSuffix).value = match[2];
+                                    document.getElementById('rate_' + idSuffix).nextElementSibling.innerText = match[2];
                                 }
                             }
-                        });
-                    }
-                    
-                    if(data.data.symptoms && data.data.symptoms.length > 0) {
-                        data.data.symptoms.forEach(sym => addSymptomRow(sym[1], sym[2], sym[3], sym[5]));
-                    } else {
-                        addSymptomRow();
-                    }
-                    
-                    setTimeout(() => { isProgrammaticUpdate = false; }, 500); // Re-enable autosave
-                })
-                .catch(err => { showToast("Failed to load", "❌"); setTimeout(hideToast, 3000); isProgrammaticUpdate = false; });
+                        }
+                    });
+                }
+                
+                if(dayData.symptoms && dayData.symptoms.length > 0) {
+                    dayData.symptoms.forEach(sym => addSymptomRow(sym[1], sym[2], sym[3], sym[5]));
+                } else {
+                    addSymptomRow();
+                }
+            } else {
+                // Empty day
+                addSymptomRow();
+            }
+            
+            setTimeout(() => { isProgrammaticUpdate = false; }, 100); 
         }
 
         // --- Auto-Save Engine ---
@@ -428,72 +434,91 @@
             if (isProgrammaticUpdate) return;
             clearTimeout(autoSaveTimer);
             showToast("Pending save...", "⏳");
-            autoSaveTimer = setTimeout(commitDataToEcosystem, 1500); // Wait 1.5s after user stops typing
+            autoSaveTimer = setTimeout(commitDataToEcosystem, 1000); 
         }
 
         function commitDataToEcosystem() {
-            return new Promise((resolve, reject) => {
-                showToast("Saving...", "🔄");
+            // 1. Gather all UI data
+            let currentDateStr = document.getElementById('record_date').value;
+            let targetDateString = new Date(currentDateStr).toDateString();
+            
+            let selectedSymptoms = [];
+            document.querySelectorAll('.symptom-check:checked').forEach(cb => selectedSymptoms.push(cb.value));
+            
+            let selectedInterventions = [];
+            document.querySelectorAll('input[id^="int_"]:checked').forEach(cb => {
+                let idSuffix = cb.id.split('_')[1];
+                let rating = document.getElementById('rate_' + idSuffix).value;
+                let prod = document.getElementById('prod_' + idSuffix).value;
+                let prodStr = prod ? ` [${prod}]` : "";
+                selectedInterventions.push(`${cb.value}${prodStr} (${rating}/5)`);
+            });
 
-                let selectedSymptoms = [];
-                document.querySelectorAll('.symptom-check:checked').forEach(cb => selectedSymptoms.push(cb.value));
+            let generalSymptomsArray = [];
+            document.querySelectorAll('.symptom-row').forEach(row => {
+                let desc = row.querySelector('.sym-desc').value.trim();
+                let cause = row.querySelector('.sym-cause').value.trim();
+                let h = parseInt(row.querySelector('.sym-dur-hrs').value) || 0;
+                let m = parseInt(row.querySelector('.sym-dur-mins').value) || 0;
+                let totalHoursDecimal = h + (m / 60);
+
+                if (desc || cause) {
+                    generalSymptomsArray.push({
+                        description: desc,
+                        cause: cause,
+                        duration: totalHoursDecimal > 0 ? totalHoursDecimal.toFixed(2) : "",
+                        comment: row.querySelector('.sym-comment').value
+                    });
+                }
+            });
+
+            const payload = {
+                record_date: currentDateStr,
+                ambient_temp_celsius: document.getElementById('ambient_temp_celsius').value,
+                sleep_debt_manual: document.getElementById('sleep_debt_manual').value,
+                subjective_energy: document.getElementById('subjective_energy').value,
+                daily_feedback: document.getElementById('daily_feedback').value,
                 
-                let selectedInterventions = [];
-                document.querySelectorAll('input[id^="int_"]:checked').forEach(cb => {
-                    let idSuffix = cb.id.split('_')[1];
-                    let rating = document.getElementById('rate_' + idSuffix).value;
-                    let prod = document.getElementById('prod_' + idSuffix).value;
-                    let prodStr = prod ? ` [${prod}]` : "";
-                    selectedInterventions.push(`${cb.value}${prodStr} (${rating}/5)`);
-                });
+                hayfever_symptoms: selectedSymptoms.join(", "),
+                hayfever_duration_mins: parseToMinutes(document.getElementById('hayfever_dur_hrs').value, document.getElementById('hayfever_dur_mins').value),
+                postcode_prefix: document.getElementById('postcode_prefix').value,
+                pollen_count_level: document.getElementById('pollen_count_level').value,
+                allergy_interventions_with_success: selectedInterventions.join(", "),
+                
+                general_symptoms_array: generalSymptomsArray
+            };
 
-                let generalSymptomsArray = [];
-                document.querySelectorAll('.symptom-row').forEach(row => {
-                    let desc = row.querySelector('.sym-desc').value.trim();
-                    let cause = row.querySelector('.sym-cause').value.trim();
-                    let h = parseInt(row.querySelector('.sym-dur-hrs').value) || 0;
-                    let m = parseInt(row.querySelector('.sym-dur-mins').value) || 0;
-                    let totalHoursDecimal = h + (m / 60);
+            // 2. OPTIMISTIC UPDATE: Instantly save to local memory & localStorage
+            if (!globalDataCache[targetDateString]) globalDataCache[targetDateString] = { metrics: [], hayfever: [], symptoms: [] };
+            
+            globalDataCache[targetDateString].metrics[6] = payload.ambient_temp_celsius;
+            globalDataCache[targetDateString].metrics[11] = payload.subjective_energy;
+            globalDataCache[targetDateString].metrics[13] = payload.daily_feedback;
+            globalDataCache[targetDateString].metrics[15] = payload.sleep_debt_manual;
+            
+            globalDataCache[targetDateString].hayfever[1] = payload.postcode_prefix;
+            globalDataCache[targetDateString].hayfever[2] = payload.pollen_count_level;
+            globalDataCache[targetDateString].hayfever[3] = payload.hayfever_symptoms;
+            globalDataCache[targetDateString].hayfever[4] = payload.hayfever_duration_mins;
+            globalDataCache[targetDateString].hayfever[5] = payload.allergy_interventions_with_success;
 
-                    if (desc || cause) {
-                        generalSymptomsArray.push({
-                            description: desc,
-                            cause: cause,
-                            duration: totalHoursDecimal > 0 ? totalHoursDecimal.toFixed(2) : "", // Backend expects hours for symptoms
-                            comment: row.querySelector('.sym-comment').value
-                        });
-                    }
-                });
+            globalDataCache[targetDateString].symptoms = generalSymptomsArray.map(sym => [targetDateString, sym.description, sym.cause, sym.duration, new Date(), sym.comment]);
+            
+            localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
 
-                const payload = {
-                    record_date: document.getElementById('record_date').value,
-                    ambient_temp_celsius: document.getElementById('ambient_temp_celsius').value,
-                    sleep_debt_manual: document.getElementById('sleep_debt_manual').value,
-                    subjective_energy: document.getElementById('subjective_energy').value,
-                    daily_feedback: document.getElementById('daily_feedback').value,
-                    
-                    hayfever_symptoms: selectedSymptoms.join(", "),
-                    hayfever_duration_mins: parseToMinutes(document.getElementById('hayfever_dur_hrs').value, document.getElementById('hayfever_dur_mins').value),
-                    postcode_prefix: document.getElementById('postcode_prefix').value,
-                    pollen_count_level: document.getElementById('pollen_count_level').value,
-                    allergy_interventions_with_success: selectedInterventions.join(", "),
-                    
-                    general_symptoms_array: generalSymptomsArray
-                };
-
-                fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.status === "success") {
-                        showToast("Saved", "✅");
-                        setTimeout(hideToast, 2500);
-                        resolve();
-                    } else throw new Error(data.message);
-                })
-                .catch((error) => {
-                    showToast("Failed to save", "❌");
-                    reject(error);
-                });
+            // 3. BACKGROUND SYNC: Push to Google Sheets
+            showToast("Syncing...", "🔄");
+            fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "success") {
+                    showToast("Saved", "✅");
+                    setTimeout(hideToast, 2500);
+                } else throw new Error(data.message);
+            })
+            .catch((error) => {
+                showToast("Offline (Saved Locally)", "⚠️");
+                setTimeout(hideToast, 4000);
             });
         }
 
@@ -501,24 +526,37 @@
         window.addEventListener('DOMContentLoaded', () => {
             document.getElementById('record_date').valueAsDate = new Date();
 
-            // Bind auto-save to all static inputs
             document.querySelectorAll('.input-trigger').forEach(input => {
                 input.addEventListener('input', queueAutoSave);
                 input.addEventListener('change', queueAutoSave);
             });
 
+            // 1. INSTANT BOOT: If we have cached data, show UI immediately
+            if (Object.keys(globalDataCache).length > 0) {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('healthspanForm').classList.remove('hidden');
+                renderDateFromCache(document.getElementById('record_date').value);
+                showToast("Fetching updates...", "🔄");
+            }
+
+            // 2. BACKGROUND FETCH: Always pull fresh data from Google Sheets to sync multiple devices
             fetch(GOOGLE_SCRIPT_URL)
                 .then(res => res.json())
                 .then(data => {
-                    let availableSheets = data.availableSheets || [];
-                    document.getElementById('loadingState').classList.add('hidden');
-                    document.getElementById('healthspanForm').classList.remove('hidden');
-
-                    if(!availableSheets.includes("Supplement_Tracking_Log")) document.getElementById('section_metrics').classList.add('hidden');
-                    if(!availableSheets.includes("HayFever")) document.getElementById('section_hayfever').classList.add('hidden');
-                    if(!availableSheets.includes("GeneralSymptoms")) document.getElementById('section_symptoms').classList.add('hidden');
-                    
-                    fetchDataForDate(document.getElementById('record_date').value);
+                    if (data.status === "success") {
+                        // Update Master Cache
+                        globalDataCache = data.dataByDate || {};
+                        localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
+                        
+                        // Boot UI if it wasn't already booted by cache
+                        document.getElementById('loadingState').classList.add('hidden');
+                        document.getElementById('healthspanForm').classList.remove('hidden');
+                        
+                        // Re-render current date to reflect any background updates
+                        renderDateFromCache(document.getElementById('record_date').value);
+                        showToast("Up to date", "✅");
+                        setTimeout(hideToast, 2500);
+                    }
                 });
         });
     </script>

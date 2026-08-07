@@ -1,63 +1,72 @@
 // Healthspan Metrics Google Sheet
 // SAVE THIS
 // const SPREADSHEET_ID = '1EfWXl1Qs7z9i3DtTirZlToIKdBwBgiie6etpaoPObig'; // <-- Double check this!
-// Code.gs - Backend v1.8
-const SPREADSHEET_ID = '1EfWXl1Qs7z9i3DtTirZlToIKdBwBgiie6etpaoPObig'; // <-- Double check this!
+// Code.gs - Backend v2.0 (Bulk Fetch)
+const SPREADSHEET_ID = '1EfWXl1Qs7z9i3DtTirZlToIKdBwBgiie6etpaoPObig'; 
 
 function doGet(e) {
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const sheets = ss.getSheets().map(s => s.getName());
-    let responseData = { availableSheets: sheets, status: "success", data: {} };
     
-    if (e.parameter.date) {
-      const targetDateStr = new Date(e.parameter.date).toDateString();
-      
-      // Fetch Supplement Logging
-      if (sheets.includes("Supplement_Tracking_Log")) {
-        const data = ss.getSheetByName("Supplement_Tracking_Log").getDataRange().getValues();
-        for (let i = 1; i < data.length; i++) {
-          if (new Date(data[i][0]).toDateString() === targetDateStr) {
-            let row = data[i];
-            if (row[15] instanceof Date) {
-              let h = row[15].getHours().toString().padStart(2, '0');
-              let m = row[15].getMinutes().toString().padStart(2, '0');
-              row[15] = `${h}:${m}`;
-            }
-            responseData.data.metrics = row;
-            break;
-          }
-        }
+    // We now return an object where the keys are date strings
+    let responseData = { availableSheets: sheets, status: "success", dataByDate: {} };
+    
+    const initDate = (dateStr) => {
+      if (!responseData.dataByDate[dateStr]) {
+        responseData.dataByDate[dateStr] = { metrics: null, hayfever: null, symptoms: [] };
       }
+    };
 
-      // Fetch HayFever
-      if (sheets.includes("HayFever")) {
-        const data = ss.getSheetByName("HayFever").getDataRange().getValues();
-        for (let i = 1; i < data.length; i++) {
-          if (new Date(data[i][0]).toDateString() === targetDateStr) {
-            responseData.data.hayfever = data[i];
-            break;
+    // Fetch Supplement Logging (Base Metrics)
+    if (sheets.includes("Supplement_Tracking_Log")) {
+      const data = ss.getSheetByName("Supplement_Tracking_Log").getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0]) {
+          let dateStr = new Date(data[i][0]).toDateString();
+          initDate(dateStr);
+          let row = data[i];
+          if (row[15] instanceof Date) {
+            let h = row[15].getHours().toString().padStart(2, '0');
+            let m = row[15].getMinutes().toString().padStart(2, '0');
+            row[15] = `${h}:${m}`;
           }
+          responseData.dataByDate[dateStr].metrics = row;
         }
-      }
-
-      // Fetch General Symptoms
-      if (sheets.includes("GeneralSymptoms")) {
-        const data = ss.getSheetByName("GeneralSymptoms").getDataRange().getValues();
-        let symptomsArray = [];
-        for (let i = 1; i < data.length; i++) {
-          if (new Date(data[i][0]).toDateString() === targetDateStr) {
-            symptomsArray.push(data[i]);
-          }
-        }
-        responseData.data.symptoms = symptomsArray;
       }
     }
+
+    // Fetch HayFever
+    if (sheets.includes("HayFever")) {
+      const data = ss.getSheetByName("HayFever").getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0]) {
+          let dateStr = new Date(data[i][0]).toDateString();
+          initDate(dateStr);
+          responseData.dataByDate[dateStr].hayfever = data[i];
+        }
+      }
+    }
+
+    // Fetch General Symptoms
+    if (sheets.includes("GeneralSymptoms")) {
+      const data = ss.getSheetByName("GeneralSymptoms").getDataRange().getValues();
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][0]) {
+          let dateStr = new Date(data[i][0]).toDateString();
+          initDate(dateStr);
+          responseData.dataByDate[dateStr].symptoms.push(data[i]);
+        }
+      }
+    }
+
     return ContentService.createTextOutput(JSON.stringify(responseData)).setMimeType(ContentService.MimeType.JSON);
   } catch (error) {
     return ContentService.createTextOutput(JSON.stringify({ error: error.message, status: "failed" })).setMimeType(ContentService.MimeType.JSON);
   }
 }
+
+// ... Keep your existing doPost(e) function exactly as it is! ...
 
 function doPost(e) {
   try {
