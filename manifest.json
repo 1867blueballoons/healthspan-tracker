@@ -2,31 +2,31 @@
   "name": "Healthspan Tracker",
   "short_name": "Healthspan",
   "description": "Daily Logging Ecosystem",
-  "start_url": "./index.html",
+  "start_url": "/healthspan-tracker/index.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1e1b4b",
   "icons": [
     {
-      "src": "./assets/icons/icon-192.png",
+      "src": "/healthspan-tracker/assets/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./assets/icons/icon-192.png",
+      "src": "/healthspan-tracker/assets/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "./assets/icons/icon-512.png",
+      "src": "/healthspan-tracker/assets/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./assets/icons/icon-512.png",
+      "src": "/healthspan-tracker/assets/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
@@ -34,14 +34,14 @@
   ],
   "screenshots": [
     {
-      "src": "./assets/icons/icon-512.png",
+      "src": "/healthspan-tracker/assets/icons/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide",
       "label": "Healthspan Desktop Dashboard"
     },
     {
-      "src": "./assets/icons/icon-192.png",
+      "src": "/healthspan-tracker/assets/icons/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "form_factor": "narrow",
