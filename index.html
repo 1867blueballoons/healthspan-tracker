@@ -47,7 +47,7 @@
             <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight drop-shadow-lg">
                 Healthspan Metrics
             </h1>
-            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v2.2</span></p>
+            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v2.3</span></p>
         </header>
 
         <div id="loadingState" class="flex flex-col items-center justify-center py-12">
@@ -80,8 +80,36 @@
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Sleep Debt Duration</label>
-                        <input type="time" id="sleep_debt_manual" step="600" onchange="roundToNearest10(this)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-lg bg-gray-50 cursor-pointer input-trigger">
-                        <p class="text-xs text-indigo-600 mt-1 font-medium">Auto-rounds & snaps to 10m intervals</p>
+                        <!-- 10-Minute Interval Dropdown Selector -->
+                        <select id="sleep_debt_manual" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-lg bg-gray-50 cursor-pointer input-trigger">
+                            <option value="">Select duration...</option>
+                            <option value="00:00">0h 00m (None)</option>
+                            <option value="00:10">0h 10m</option>
+                            <option value="00:20">0h 20m</option>
+                            <option value="00:30">0h 30m</option>
+                            <option value="00:40">0h 40m</option>
+                            <option value="00:50">0h 50m</option>
+                            <option value="01:00">1h 00m</option>
+                            <option value="01:10">1h 10m</option>
+                            <option value="01:20">1h 20m</option>
+                            <option value="01:30">1h 30m</option>
+                            <option value="01:40">1h 40m</option>
+                            <option value="01:50">1h 50m</option>
+                            <option value="02:00">2h 00m</option>
+                            <option value="02:10">2h 10m</option>
+                            <option value="02:20">2h 20m</option>
+                            <option value="02:30">2h 30m</option>
+                            <option value="02:40">2h 40m</option>
+                            <option value="02:50">2h 50m</option>
+                            <option value="03:00">3h 00m</option>
+                            <option value="03:10">3h 10m</option>
+                            <option value="03:20">3h 20m</option>
+                            <option value="03:30">3h 30m</option>
+                            <option value="03:40">3h 40m</option>
+                            <option value="03:50">3h 50m</option>
+                            <option value="04:00">4h 00m</option>
+                        </select>
+                        <p class="text-xs text-indigo-600 mt-1 font-medium">Strict 10-minute interval selection</p>
                     </div>
                 </div>
 
@@ -112,7 +140,7 @@
                             <label class="block text-xs font-bold text-emerald-800 uppercase tracking-wide mb-1">Location / Town (Europe)</label>
                             <input type="text" id="postcode_prefix" placeholder="e.g. Wilmslow or Paris" class="w-full p-2 border border-emerald-200 rounded bg-white focus:ring-2 focus:ring-emerald-500 input-trigger font-semibold" onchange="if(document.getElementById('record_date').valueAsDate.toDateString() === new Date().toDateString()) fetchLivePollenData()">
                         </div>
-                        <p class="text-xs text-emerald-600 mt-2">Type any city/town to update coordinates automatically.</p>
+                        <p id="locationHelperText" class="text-xs text-emerald-600 mt-2">Type any city/town to update coordinates automatically.</p>
                     </div>
 
                     <!-- The Automated Pollen Widget Box -->
@@ -289,16 +317,6 @@
             }
         }
 
-        function roundToNearest10(inputElem) {
-            if(!inputElem.value) return;
-            let [hours, mins] = inputElem.value.split(':').map(Number);
-            let totalMins = hours * 60 + mins;
-            let roundedMins = Math.round(totalMins / 10) * 10;
-            let finalHours = Math.floor(roundedMins / 60) % 24;
-            let finalM = roundedMins % 60;
-            inputElem.value = `${String(finalHours).padStart(2, '0')}:${String(finalM).padStart(2, '0')}`;
-        }
-
         function parseToMinutes(hrs, mins) {
             let h = parseInt(hrs) || 0;
             let m = parseInt(mins) || 0;
@@ -348,12 +366,17 @@
 
         async function fetchLivePollenData() {
             const locationName = document.getElementById('postcode_prefix').value;
+            const helperText = document.getElementById('locationHelperText');
+            
             if (!locationName) {
                 document.getElementById('ui_overall_pollen').innerText = "Enter Location First";
                 return;
             }
 
             document.getElementById('pollenLoader').classList.remove('hidden');
+            helperText.innerText = "Resolving location...";
+            helperText.className = "text-xs text-emerald-600 mt-2";
+
             try {
                 const { lat, lon } = await getCoordinates(locationName);
 
@@ -388,11 +411,16 @@
                 document.getElementById('ui_overall_pollen').innerText = `Overall: ${overall}`;
                 document.getElementById('ui_specific_pollens').innerHTML = specificsHTML;
                 
+                helperText.innerText = "Type any city/town to update coordinates automatically.";
+                helperText.className = "text-xs text-emerald-600 mt-2";
+
                 queueAutoSave(); 
 
             } catch (error) {
                 console.error("API failed:", error);
                 document.getElementById('ui_overall_pollen').innerText = "Location Error";
+                helperText.innerText = "Location not found. Try a nearby major city.";
+                helperText.className = "text-xs text-red-500 font-bold mt-2";
             } finally {
                 document.getElementById('pollenLoader').classList.add('hidden');
             }
@@ -455,6 +483,8 @@
             document.getElementById('specific_pollens').value = '';
             document.getElementById('ui_overall_pollen').innerText = 'Awaiting Data...';
             document.getElementById('ui_specific_pollens').innerHTML = '<span title="Tree Pollen">🌳 --</span> | <span title="Grass Pollen">🌾 --</span> | <span title="Weed Pollen">🌼 --</span>';
+            document.getElementById('locationHelperText').innerText = "Type any city/town to update coordinates automatically.";
+            document.getElementById('locationHelperText').className = "text-xs text-emerald-600 mt-2";
             document.getElementById('symptomsContainer').innerHTML = '';
 
             let dayData = globalDataCache[targetDateString];
@@ -529,7 +559,6 @@
                 }
             } else {
                 addSymptomRow();
-                // If it's a completely brand new day and location inheritance exists, copy last known location
                 let sortedDates = Object.keys(globalDataCache).sort((a, b) => new Date(b) - new Date(a));
                 for (let d of sortedDates) {
                     if (globalDataCache[d].hayfever && globalDataCache[d].hayfever[1]) {
