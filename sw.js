@@ -1,10 +1,10 @@
 // Bumped to v1.9 to trigger the update
 const CACHE_NAME = 'healthspan-v2.5';
 const ASSETS = [
-  './index.html',
-  './manifest.json',
-  './assets/icons/icon-192.png',
-  './assets/icons/icon-512.png'
+  'healthspan-tracker/index.html',
+  'healthspan-tracker/manifest.json',
+  'healthspan-tracker/assets/icons/icon-192.png',
+  'healthspan-tracker/assets/icons/icon-512.png'
 ];
 
 // Install and Cache assets
