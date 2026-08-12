@@ -1,6 +1,4 @@
 // Healthspan Metrics Google Sheet
-// SAVE THIS
-// const SPREADSHEET_ID = '1EfWXl1Qs7z9i3DtTirZlToIKdBwBgiie6etpaoPObig'; // <-- Double check this!
 // Code.gs - Backend v2.0 (Bulk Fetch)
 const SPREADSHEET_ID = '1EfWXl1Qs7z9i3DtTirZlToIKdBwBgiie6etpaoPObig'; 
 
@@ -66,8 +64,6 @@ function doGet(e) {
   }
 }
 
-// ... Keep your existing doPost(e) function exactly as it is! ...
-
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
@@ -89,22 +85,24 @@ function doPost(e) {
       else insertCallback(sheet);
     };
 
-    // 1. Supplement_Tracking_Log (Now includes Energy and Feedback)
-    if (data.ambient_temp_celsius || data.sleep_debt_manual || data.subjective_energy || data.daily_feedback) {
+    // 1. Supplement_Tracking_Log (Now includes Energy, Feedback, and Golf Focus)
+    if (data.ambient_temp_celsius || data.sleep_debt_manual || data.subjective_energy || data.daily_feedback || data.golf_focus) {
       upsertRow("Supplement_Tracking_Log", entryDate, 
         (sheet, row) => {
           if (data.ambient_temp_celsius) sheet.getRange(row, 7).setValue(data.ambient_temp_celsius);
           if (data.subjective_energy) sheet.getRange(row, 12).setValue(data.subjective_energy); // Col L (Index 11)
           if (data.daily_feedback) sheet.getRange(row, 14).setValue(data.daily_feedback);       // Col N (Index 13)
-          if (data.sleep_debt_manual) sheet.getRange(row, 16).setValue(data.sleep_debt_manual);
+          if (data.sleep_debt_manual) sheet.getRange(row, 16).setValue(data.sleep_debt_manual); // Col P (Index 15)
+          if (data.golf_focus) sheet.getRange(row, 13).setValue(data.golf_focus);               // Col Q (Index 16)
         },
         (sheet) => {
-          let newRow = new Array(16).fill("");
+          let newRow = new Array(12).fill(""); // Expanded array to hold up to Col Q
           newRow[0] = entryDate; 
           newRow[6] = data.ambient_temp_celsius; 
           newRow[11] = data.subjective_energy;
           newRow[13] = data.daily_feedback;
           newRow[15] = data.sleep_debt_manual;
+          newRow[12] = data.golf_focus;
           sheet.appendRow(newRow);
         }
       );
