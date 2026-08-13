@@ -265,6 +265,8 @@
 
     <!-- Template for Symptom Row -->
     <template id="symptomRowTemplate">
+        <!-- Global Datalist for General Symptom Tags Auto-Fill -->
+        <datalist id="globalSymptomTags"></datalist>
         <div class="symptom-row bg-rose-50/50 p-4 rounded-lg border border-rose-100 relative">
             <button type="button" onclick="this.closest('.symptom-row').remove(); queueAutoSave();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xl font-bold">&times;</button>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3 pr-6">
@@ -289,10 +291,11 @@
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Tag / Label (Max 20)</label>
-                    <input type="text" maxlength="20" class="sym-tag w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" placeholder="e.g. Relative, Illness">
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Tag (Max 20)</label>
+                    <input type="text" maxlength="20" list="globalSymptomTags" class="sym-tag w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" placeholder="e.g. Relative, Illness">
                 </div>
             </div>
+            
             <div>
                 <label class="block text-xs font-semibold text-gray-600 mb-1">Detailed Comment / Notes</label>
                 <textarea class="sym-comment w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500 input-trigger" rows="2" placeholder="Add additional context..."></textarea>
@@ -573,6 +576,29 @@
             if(!isProgrammaticUpdate) queueAutoSave();
         }
 
+        function updateGlobalTagAutofill() {
+            const tagsSet = new Set();
+            // Scan local cache for all previously used tags
+            for (let dateKey in globalDataCache) {
+                if (globalDataCache[dateKey].symptoms) {
+                    globalDataCache[dateKey].symptoms.forEach(sym => {
+                        // sym[6] holds the tag in our ecosystem array mapping
+                        if (sym[6]) tagsSet.add(sym[6].trim());
+                    });
+                }
+            }
+            // Populate the datalist
+            const datalist = document.getElementById('globalSymptomTags');
+            if (datalist) {
+                datalist.innerHTML = '';
+                tagsSet.forEach(tag => {
+                    let option = document.createElement('option');
+                    option.value = tag;
+                    datalist.appendChild(option);
+                });
+            }
+        }
+
         function renderDateFromCache(dateStr) {
             isProgrammaticUpdate = true;
             let targetDateString = new Date(dateStr).toDateString();
@@ -705,6 +731,18 @@
                 }
             }
 
+            // If no location is set for this specific date, fallback to the most recently used location
+            let locationInputVal = document.getElementById('postcode_prefix').value;
+            if (!locationInputVal) {
+                let sortedDates = Object.keys(globalDataCache).sort((a, b) => new Date(b) - new Date(a));
+                for (let d of sortedDates) {
+                    if (globalDataCache[d].hayfever && globalDataCache[d].hayfever[1]) {
+                        document.getElementById('postcode_prefix').value = globalDataCache[d].hayfever[1];
+                        break;
+                    }
+                }
+            }
+
             // Lock original data in memory to enforce protections against accidental saves
             currentRecordOriginalPollen = {
                 loc: document.getElementById('postcode_prefix').value,
@@ -712,6 +750,19 @@
                 spec: document.getElementById('specific_pollens').value
             };
             
+            // FIX: Always check if we have a location and fetch/render the pollen graph for this specific date
+            let finalLocation = document.getElementById('postcode_prefix').value;
+            if (finalLocation) {
+                // If the cached day data doesn't have hourly graph data stored yet, force a live fetch
+                let dayDataCheck = globalDataCache[targetDateString];
+                if (dayDataCheck && dayDataCheck.hayfever && dayDataCheck.hayfever[8]) {
+                    // It's already cached, our parser will handle it. But let's make sure the input matches.
+                    document.getElementById('postcode_prefix').value = finalLocation;
+                } else {
+                    // Fetch live for this new date target
+                    fetchLivePollenData(true);
+                }
+            }
             setTimeout(() => { isProgrammaticUpdate = false; }, 100); 
         }
 
@@ -766,7 +817,7 @@
                     });
                 }
             });
-
+            
             // Safeguard Enforced: Revert location/pollen payload data to original state if we are out of the 3-day edit window
             let locToSave = document.getElementById('postcode_prefix').value;
             let lvlToSave = document.getElementById('pollen_count_level').value;
@@ -838,6 +889,8 @@
                 showToast("Offline (Saved Locally)", "⚠️");
                 setTimeout(hideToast, 4000);
             });
+
+            updateGlobalTagAutofill()
         }
 
         // --- Initialization ---
@@ -866,6 +919,7 @@
                 document.getElementById('loadingState').classList.add('hidden');
                 document.getElementById('healthspanForm').classList.remove('hidden');
                 renderDateFromCache(document.getElementById('record_date').value);
+                updateGlobalTagAutofill();
                 showToast("Fetching updates...", "🔄");
             }
 
