@@ -37,7 +37,7 @@
 
     <div class="max-w-3xl mx-auto relative">
         
-        <!-- Auto-Save Status Indicator. -->
+        <!-- Auto-Save Status Indicator -->
         <div id="syncToast" class="fixed top-4 right-4 bg-gray-900 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg opacity-0 pointer-events-none z-50 flex items-center">
             <span id="syncToastIcon" class="mr-2">🔄</span>
             <span id="syncToastText">Saving...</span>
@@ -99,7 +99,8 @@
                         <textarea id="daily_feedback" rows="2" placeholder="General notes & adjustments..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50 input-trigger"></textarea>
                     </div>
                 </div>
-                    <!-- New Golf Focus Row -->
+                
+                <!-- Golf Focus Row -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Golf Focus</label>
@@ -111,7 +112,6 @@
                         </select>
                     </div>
                 </div>
-
             </div>
 
             <!-- SECTION 2: HayFever -->
@@ -144,18 +144,25 @@
                             <span title="Tree Pollen">🌳 --</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 --</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 --</span>
                         </div>
 
-                        <!-- 24-HOUR BAR CHART INJECTION SITE -->
+                        <!-- 24-HOUR BAR CHART -->
                         <div id="pollenChartContainer" class="mt-3 hidden w-full">
                             <div class="flex justify-between items-center mb-1">
                                 <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">24-Hour Pollen Trend</p>
                             </div>
-                            <div id="pollenChart" class="flex items-end justify-between h-14 gap-[2px] bg-white/50 p-1.5 rounded border border-emerald-200">
-                                <!-- Bars injected here by JS -->
+                            <div class="flex items-center">
+                                <div id="pollenChart" class="flex-1 flex items-end justify-between h-14 gap-[2px] bg-white/50 p-1.5 rounded border border-emerald-200">
+                                    <!-- Bars injected here by JS -->
+                                </div>
+                                <div class="flex flex-col justify-between h-14 pl-2 text-[9px] text-emerald-700 font-bold whitespace-nowrap">
+                                    <span id="chartMax">Max: --</span>
+                                    <span id="chartMin">Min: --</span>
+                                </div>
                             </div>
                         </div>
 
                         <input type="hidden" id="pollen_count_level" value="">
                         <input type="hidden" id="specific_pollens" value="">
+                        <input type="hidden" id="hourly_pollen_data" value="">
                     </div>
                 </div>
                 
@@ -270,13 +277,20 @@
                     <input type="text" class="sym-cause w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500 input-trigger" placeholder="e.g. Alcohol">
                 </div>
             </div>
-            <div class="mb-3 pr-6">
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Duration</label>
-                <div class="duration-widget flex items-center space-x-2">
-                    <input type="number" class="sym-dur-hrs w-16 p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" min="0" placeholder="0">
-                    <span class="text-xs font-medium text-gray-600">h</span>
-                    <input type="number" class="sym-dur-mins w-16 p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" min="0" max="59" placeholder="0">
-                    <span class="text-xs font-medium text-gray-600">m</span>
+            <!-- Expanded Tag & Duration Row -->
+            <div class="mb-3 pr-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Duration</label>
+                    <div class="duration-widget flex items-center space-x-2">
+                        <input type="number" class="sym-dur-hrs w-16 p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" min="0" placeholder="0">
+                        <span class="text-xs font-medium text-gray-600">h</span>
+                        <input type="number" class="sym-dur-mins w-16 p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" min="0" max="59" placeholder="0">
+                        <span class="text-xs font-medium text-gray-600">m</span>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">Tag / Label (Max 20)</label>
+                    <input type="text" maxlength="20" class="sym-tag w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" placeholder="e.g. Relative, Illness">
                 </div>
             </div>
             <div>
@@ -299,6 +313,16 @@
         // The Master Local Cache
         let globalDataCache = JSON.parse(localStorage.getItem('healthspan_cache')) || {};
 
+        // Checks if a date is today or within the last 3 days
+        function isDateEditable(dateStr) {
+            const active = new Date(dateStr);
+            active.setHours(0, 0, 0, 0);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const diffDays = (today.getTime() - active.getTime()) / (1000 * 3600 * 24);
+            return diffDays >= 0 && diffDays <= 3;
+        }
+
         // --- SAFE POLLEN ICON PARSER ---
         function parsePollenForUI(specificsString) {
             let tVal = '--', gVal = '--', wVal = '--';
@@ -313,7 +337,7 @@
             return `<span title="Tree Pollen">🌳 ${tVal}</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 ${gVal}</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 ${wVal}</span>`;
         }
 
-        // Check if Open-Meteo returned null/invalid hourly array values (Req 1)
+        // Check if Open-Meteo returned null/invalid hourly array values
         function hasValidPollenValues(hourly) {
             if (!hourly) return false;
             const keys = ['alder_pollen', 'birch_pollen', 'grass_pollen', 'mugwort_pollen', 'ragweed_pollen'];
@@ -387,8 +411,7 @@
             const helperText = document.getElementById('locationHelperText');
             
             const activeDateStr = document.getElementById('record_date').value;
-            const targetDateString = new Date(activeDateStr).toDateString();
-            const isToday = targetDateString === new Date().toDateString();
+            const isEditable = isDateEditable(activeDateStr);
             
             if (!locationName) {
                 document.getElementById('ui_overall_pollen').innerText = "Enter Location First";
@@ -408,14 +431,12 @@
                     throw new Error("Pollen model is restricted to European regions.");
                 }
 
-                // Req 2: Fetch hourly array specifically for the active selected day
                 const isoDate = new Date(activeDateStr).toISOString().split('T')[0];
                 const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&start_date=${isoDate}&end_date=${isoDate}&timezone=Europe%2FLondon`;
                 
                 const response = await fetch(url);
                 const data = await response.json();
                 
-                // Req 1: Handle valid location but no backend pollen data returned
                 if (!data.hourly || !hasValidPollenValues(data.hourly)) {
                     throw new Error("No data currently available for this location");
                 }
@@ -424,7 +445,7 @@
                 let hourlyTotals = [];
                 let maxHourlyTotal = 1;
 
-                // Req 2: Generate metrics for the 24 hour bar chart and daily overall maxes
+                // Generate metrics for the 24 hour bar chart and daily overall maxes
                 for (let i = 0; i < 24; i++) {
                     let tree = (data.hourly.alder_pollen[i] || 0) + (data.hourly.birch_pollen[i] || 0);
                     let grass = (data.hourly.grass_pollen[i] || 0);
@@ -458,11 +479,16 @@
 
                 document.getElementById('pollen_count_level').value = overall;
                 document.getElementById('specific_pollens').value = specificsStr;
+                document.getElementById('hourly_pollen_data').value = JSON.stringify(hourlyTotals);
                 
                 document.getElementById('ui_overall_pollen').innerText = `Overall: ${overall}`;
                 document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(specificsStr);
                 
-                // Req 2: Draw the Bar Chart
+                // Draw the Bar Chart and set Min/Max
+                const minHourlyTotal = Math.min(...hourlyTotals);
+                document.getElementById('chartMax').innerText = `Max: ${Math.round(maxHourlyTotal)}`;
+                document.getElementById('chartMin').innerText = `Min: ${Math.round(minHourlyTotal)}`;
+
                 const chart = document.getElementById('pollenChart');
                 chart.innerHTML = '';
                 hourlyTotals.forEach((total, i) => {
@@ -471,18 +497,17 @@
                     if (total >= 50) { color = '#f87171'; levelStr = "High"; } // Red
                     else if (total >= 10) { color = '#fbbf24'; levelStr = "Moderate"; } // Yellow
                     
-                    let pct = Math.max(5, (total / maxHourlyTotal) * 100);
+                    let pct = Math.max(5, (total / Math.max(maxHourlyTotal, 1)) * 100);
                     chart.innerHTML += `<div class="flex-1 rounded-t-sm transition-all hover:opacity-75 cursor-pointer" style="background-color: ${color}; height: ${pct}%; min-height: 2px;" title="${i.toString().padStart(2, '0')}:00 - ${Math.round(total)} grains/m³ (${levelStr})"></div>`;
                 });
                 document.getElementById('pollenChartContainer').classList.remove('hidden');
                 
-                helperText.innerText = isToday ? "Type any European city to update coordinates." : "Historical view. Location changes will not be saved.";
+                helperText.innerText = isEditable ? "Type any European city to update coordinates." : "Historical view. Location changes will not be saved.";
                 helperText.className = "text-xs text-emerald-600 mt-2";
 
-                // Req 3: Ensure test queries on historical dates do not trigger autosave
-                if (isToday && !isAuto) {
+                if (isEditable && !isAuto) {
                     queueAutoSave(); 
-                } else if (!isToday && !isAuto) {
+                } else if (!isEditable && !isAuto) {
                     showToast("Test Query: Not Saved", "ℹ️");
                     setTimeout(hideToast, 2500);
                 }
@@ -502,6 +527,7 @@
                 if(!isAuto) {
                     document.getElementById('pollen_count_level').value = "";
                     document.getElementById('specific_pollens').value = "";
+                    document.getElementById('hourly_pollen_data').value = "";
                     document.getElementById('ui_specific_pollens').innerHTML = `<span title="Tree Pollen">🌳 --</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 --</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 --</span>`;
                     document.getElementById('pollenChartContainer').classList.add('hidden');
                 }
@@ -527,7 +553,7 @@
             renderDateFromCache(e.target.value);
         });
 
-        function addSymptomRow(desc = '', cause = '', durDecimal = '', comment = '') {
+        function addSymptomRow(desc = '', cause = '', durDecimal = '', comment = '', tag = '') {
             const container = document.getElementById('symptomsContainer');
             const template = document.getElementById('symptomRowTemplate');
             const clone = template.content.cloneNode(true);
@@ -535,6 +561,7 @@
             clone.querySelector('.sym-desc').value = desc;
             clone.querySelector('.sym-cause').value = cause;
             clone.querySelector('.sym-comment').value = comment;
+            clone.querySelector('.sym-tag').value = tag;
             populateRowDurationWidget(clone, durDecimal);
             
             clone.querySelectorAll('.input-trigger').forEach(input => {
@@ -565,6 +592,7 @@
             document.getElementById('postcode_prefix').value = '';
             document.getElementById('pollen_count_level').value = '';
             document.getElementById('specific_pollens').value = '';
+            document.getElementById('hourly_pollen_data').value = '';
             document.getElementById('ui_overall_pollen').innerText = 'Awaiting Data...';
             document.getElementById('ui_specific_pollens').innerHTML = '<span title="Tree Pollen">🌳 --</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 --</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 --</span>';
             document.getElementById('pollenChartContainer').classList.add('hidden');
@@ -604,12 +632,39 @@
                     
                     let overall = dayData.hayfever[2] || 'No Data';
                     let specifics = dayData.hayfever[7] || 'Tree: -- | Grass: -- | Weed: --';
+                    let hourlyDataStr = dayData.hayfever[8] || '';
                     
                     document.getElementById('pollen_count_level').value = overall;
                     document.getElementById('specific_pollens').value = specifics;
+                    document.getElementById('hourly_pollen_data').value = hourlyDataStr;
                     
                     document.getElementById('ui_overall_pollen').innerText = `Overall: ${overall}`;
                     document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(specifics);
+
+                    // Render chart immediately from memory if available
+                    if (hourlyDataStr) {
+                        try {
+                            const hourlyTotals = JSON.parse(hourlyDataStr);
+                            const chart = document.getElementById('pollenChart');
+                            chart.innerHTML = '';
+                            const maxHourlyTotal = Math.max(...hourlyTotals, 1);
+                            const minHourlyTotal = Math.min(...hourlyTotals);
+                            
+                            document.getElementById('chartMax').innerText = `Max: ${Math.round(maxHourlyTotal)}`;
+                            document.getElementById('chartMin').innerText = `Min: ${Math.round(minHourlyTotal)}`;
+                            
+                            hourlyTotals.forEach((total, i) => {
+                                let color = '#34d399';
+                                let levelStr = "Low";
+                                if (total >= 50) { color = '#f87171'; levelStr = "High"; }
+                                else if (total >= 10) { color = '#fbbf24'; levelStr = "Moderate"; }
+                                
+                                let pct = Math.max(5, (total / maxHourlyTotal) * 100);
+                                chart.innerHTML += `<div class="flex-1 rounded-t-sm transition-all hover:opacity-75 cursor-pointer" style="background-color: ${color}; height: ${pct}%; min-height: 2px;" title="${i.toString().padStart(2, '0')}:00 - ${Math.round(total)} grains/m³ (${levelStr})"></div>`;
+                            });
+                            document.getElementById('pollenChartContainer').classList.remove('hidden');
+                        } catch(e) { console.error("Error parsing cached graph data", e); }
+                    }
 
                     let symptoms = dayData.hayfever[3] || "";
                     document.querySelectorAll('.symptom-check').forEach(cb => { if(symptoms.includes(cb.value)) cb.checked = true; });
@@ -635,7 +690,7 @@
                 }
                 
                 if(dayData.symptoms && dayData.symptoms.length > 0) {
-                    dayData.symptoms.forEach(sym => addSymptomRow(sym[1], sym[2], sym[3], sym[5]));
+                    dayData.symptoms.forEach(sym => addSymptomRow(sym[1], sym[2], sym[3], sym[5], sym[6] || ''));
                 } else {
                     addSymptomRow();
                 }
@@ -650,17 +705,12 @@
                 }
             }
 
-            // Lock original data in memory to enforce Req 3 protections against accidental saves
+            // Lock original data in memory to enforce protections against accidental saves
             currentRecordOriginalPollen = {
                 loc: document.getElementById('postcode_prefix').value,
                 lvl: document.getElementById('pollen_count_level').value,
                 spec: document.getElementById('specific_pollens').value
             };
-
-            let hasLocation = document.getElementById('postcode_prefix').value;
-            if (hasLocation) {
-                fetchLivePollenData(true); // Automatically render the chart in the background
-            }
             
             setTimeout(() => { isProgrammaticUpdate = false; }, 100); 
         }
@@ -684,7 +734,7 @@
         function commitDataToEcosystem() {
             let currentDateStr = document.getElementById('record_date').value;
             let targetDateString = new Date(currentDateStr).toDateString();
-            let isToday = targetDateString === new Date().toDateString();
+            let isEditable = isDateEditable(currentDateStr);
             
             let selectedSymptoms = [];
             document.querySelectorAll('.symptom-check:checked').forEach(cb => selectedSymptoms.push(cb.value));
@@ -711,17 +761,18 @@
                         description: desc,
                         cause: cause,
                         duration: totalHoursDecimal > 0 ? totalHoursDecimal.toFixed(2) : "",
-                        comment: row.querySelector('.sym-comment').value
+                        comment: row.querySelector('.sym-comment').value,
+                        tag: row.querySelector('.sym-tag').value.trim()
                     });
                 }
             });
 
-            // Req 3 Enforced: Revert location/pollen payload data to original state if we are saving history
+            // Safeguard Enforced: Revert location/pollen payload data to original state if we are out of the 3-day edit window
             let locToSave = document.getElementById('postcode_prefix').value;
             let lvlToSave = document.getElementById('pollen_count_level').value;
             let specToSave = document.getElementById('specific_pollens').value;
 
-            if (!isToday) {
+            if (!isEditable) {
                 locToSave = currentRecordOriginalPollen.loc;
                 lvlToSave = currentRecordOriginalPollen.lvl;
                 specToSave = currentRecordOriginalPollen.spec;
@@ -734,7 +785,7 @@
                 subjective_energy: document.getElementById('subjective_energy').value,
                 daily_feedback: document.getElementById('daily_feedback').value,
                 
-                golf_focus: document.getElementById('golf_focus').value, // <-- NEW FIELD
+                golf_focus: document.getElementById('golf_focus').value,
                 hayfever_symptoms: selectedSymptoms.join(", "),
                 hayfever_duration_mins: parseToMinutes(document.getElementById('hayfever_dur_hrs').value, document.getElementById('hayfever_dur_mins').value),
                 
@@ -742,6 +793,7 @@
                 postcode_prefix: locToSave,
                 pollen_count_level: lvlToSave,
                 specific_pollens: specToSave,
+                hourly_pollen_data: document.getElementById('hourly_pollen_data').value,
                 
                 allergy_interventions_with_success: selectedInterventions.join(", "),
                 general_symptoms_array: generalSymptomsArray
@@ -749,15 +801,15 @@
 
             // OPTIMISTIC UPDATE & NULL SAFETY CATCHES
             if (!globalDataCache[targetDateString]) {
-                globalDataCache[targetDateString] = { metrics: [], hayfever: [], symptoms: [] };
+                globalDataCache[targetDateString] = { metrics: [], hayfever: new Array(10).fill(""), symptoms: [] };
             }
             if (!globalDataCache[targetDateString].metrics) globalDataCache[targetDateString].metrics = [];
-            if (!globalDataCache[targetDateString].hayfever) globalDataCache[targetDateString].hayfever = [];
+            if (!globalDataCache[targetDateString].hayfever) globalDataCache[targetDateString].hayfever = new Array(10).fill("");
             if (!globalDataCache[targetDateString].symptoms) globalDataCache[targetDateString].symptoms = [];
             
             globalDataCache[targetDateString].metrics[6] = payload.ambient_temp_celsius;
             globalDataCache[targetDateString].metrics[11] = payload.subjective_energy;
-            globalDataCache[targetDateString].metrics[12] = payload.golf_focus; // <-- NEW CACHE SAVE
+            globalDataCache[targetDateString].metrics[12] = payload.golf_focus;
             globalDataCache[targetDateString].metrics[13] = payload.daily_feedback;
             globalDataCache[targetDateString].metrics[15] = payload.sleep_debt_manual;
             
@@ -767,8 +819,9 @@
             globalDataCache[targetDateString].hayfever[4] = payload.hayfever_duration_mins;
             globalDataCache[targetDateString].hayfever[5] = payload.allergy_interventions_with_success;
             globalDataCache[targetDateString].hayfever[7] = payload.specific_pollens;
+            globalDataCache[targetDateString].hayfever[8] = payload.hourly_pollen_data;
 
-            globalDataCache[targetDateString].symptoms = generalSymptomsArray.map(sym => [targetDateString, sym.description, sym.cause, sym.duration, new Date(), sym.comment]);
+            globalDataCache[targetDateString].symptoms = generalSymptomsArray.map(sym => [targetDateString, sym.description, sym.cause, sym.duration, new Date(), sym.comment, sym.tag]);
             
             localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
 
