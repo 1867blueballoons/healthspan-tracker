@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Healthspan Daily Tracker</title>
     
-    <!-- PWA & Native App Meta Tags -->
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#1e1b4b">
     <meta name="mobile-web-app-capable" content="yes">
@@ -32,12 +31,15 @@
 
         .duration-widget input { text-align: center; font-weight: bold; }
         
-        /* The UI Lock Overlay */
+        /* The Deterministic UI Lock Overlay (Used ONLY during high-risk state changes) */
         #ui-lock-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px);
             z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center;
         }
+        
+        /* Subtle Toast for background syncing */
+        #syncToast { transition: opacity 0.3s ease; }
     </style>
 </head>
 <body class="text-gray-800 p-4 md:p-8">
@@ -45,8 +47,14 @@
     <!-- Strict UI Lock Overlay -->
     <div id="ui-lock-overlay">
         <div class="loader !border-indigo-200 !border-t-indigo-600 w-12 h-12 mb-4"></div>
-        <h2 class="text-white text-xl font-bold tracking-widest">TRANSMITTING</h2>
-        <p class="text-indigo-200 text-sm mt-2">Enforcing State Lock...</p>
+        <h2 class="text-white text-xl font-bold tracking-widest uppercase" id="lock-overlay-title">Enforcing State Lock</h2>
+        <p class="text-indigo-200 text-sm mt-2" id="lock-overlay-desc">Securing unsaved data before temporal shift...</p>
+    </div>
+    
+    <!-- Background Sync Toast (Optimistic UI) -->
+    <div id="syncToast" class="fixed top-4 right-4 bg-gray-900 text-white text-xs font-bold px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none z-50 flex items-center border border-gray-700">
+        <span id="syncToastIcon" class="mr-2 loader !border-gray-500 !border-t-white !w-4 !h-4"></span>
+        <span id="syncToastText" class="tracking-wide">Syncing to Matrix...</span>
     </div>
 
     <div class="max-w-3xl mx-auto relative">
@@ -54,7 +62,7 @@
             <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight drop-shadow-lg">
                 Healthspan Metrics
             </h1>
-            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v3.1</span></p>
+            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v4.0.Opti</span></p>
         </header>
 
         <div id="loadingState" class="flex flex-col items-center justify-center py-12">
@@ -66,12 +74,12 @@
             
             <div class="flex justify-end mb-2">
                 <div class="glass-card p-3 border-4 border-yellow-400 bg-yellow-100 flex items-center space-x-3 shadow-lg">
-                    <button type="button" onclick="changeDate(-1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl">&larr;</button>
+                    <button type="button" onclick="handleDateSwitch(-1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl transition-transform hover:scale-110">&larr;</button>
                     <div>
                         <label class="block text-xs font-bold text-yellow-800 uppercase tracking-wide text-center">Active Record Date</label>
-                        <input type="date" id="record_date" required class="bg-yellow-200 text-yellow-900 text-2xl font-black p-2 rounded text-center border-none focus:ring-2 focus:ring-yellow-500 cursor-pointer">
+                        <input type="date" id="record_date" required class="bg-yellow-200 text-yellow-900 text-2xl font-black p-2 rounded text-center border-none focus:ring-2 focus:ring-yellow-500 cursor-pointer" onchange="handleDateSwitch(0, true)">
                     </div>
-                    <button type="button" onclick="changeDate(1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl">&rarr;</button>
+                    <button type="button" onclick="handleDateSwitch(1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl transition-transform hover:scale-110">&rarr;</button>
                 </div>
             </div>
 
@@ -267,20 +275,17 @@
                 </div>
             </div>
             
-            <!-- EXPLICIT SAVE BUTTON -->
-            <div class="flex justify-center mt-8">
-                <button type="button" onclick="forceSync()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xl py-4 px-12 rounded-xl shadow-xl transition-all transform hover:scale-105">
-                    TRANSMIT & LOCK
-                </button>
+            <div class="flex justify-center mt-6 mb-2">
+                 <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest"><i class="fa-solid fa-cloud-arrow-up"></i> Background Optimistic Sync Active</p>
             </div>
         </form>
     </div>
 
-    <!-- Template for Symptom Row (WITH SACSI & MDM VERIFICATION) -->
+    <!-- Template for Symptom Row -->
     <template id="symptomRowTemplate">
         <datalist id="globalSymptomTags"></datalist>
         <div class="symptom-row sacsi-container bg-slate-100 p-5 rounded-xl border-2 border-slate-300 relative shadow-md">
-            <button type="button" onclick="this.closest('.symptom-row').remove(); triggerSyncIndicator();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-2xl font-bold px-2">&times;</button>
+            <button type="button" onclick="this.closest('.symptom-row').remove(); queueOptimisticSync();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-2xl font-bold px-2">&times;</button>
             
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pr-6">
                 <div>
@@ -331,6 +336,11 @@
         let currentRecordOriginalPollen = { loc: '', lvl: '', spec: '' };
         let globalDataCache = JSON.parse(localStorage.getItem('healthspan_cache')) || {};
         let activeMDMTags = []; 
+        
+        // --- OPTIMISTIC UI ENGINE STATE ---
+        let debounceTimer = null;
+        let isSyncing = false;
+        let hasPendingChanges = false;
 
         function isDateEditable(dateStr) {
             const active = new Date(dateStr);
@@ -341,7 +351,6 @@
             return diffDays >= 0 && diffDays <= 3;
         }
 
-        // --- SACSI Anchor Logic (10 Definitions & Behavioral Anchors) ---
         const SACSI_DEFINITIONS = {
             1: "<strong>Definition:</strong> Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted.<br><strong>Behavior:</strong> Zero modification to your daily routine.",
             2: "<strong>Definition:</strong> Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted.<br><strong>Behavior:</strong> Zero modification to your daily routine.",
@@ -366,7 +375,6 @@
             textBox.className = `sacsi-text-anchor text-sm font-normal leading-tight mt-3 text-left transition-all bg-white p-3 rounded shadow-sm border border-gray-200 ${colorClass || 'text-gray-800'}`;
         }
 
-        // --- MDM Verification Logic ---
         function verifyMDMTag(inputElement) {
             const val = inputElement.value.trim().toLowerCase();
             const warning = inputElement.nextElementSibling;
@@ -510,7 +518,7 @@
                 
                 helperText.innerText = isEditable ? "Type any European city to update coordinates." : "Historical view. Location changes will not be saved.";
 
-                if (isEditable && !isAuto) triggerSyncIndicator();
+                if (isEditable && !isAuto) queueOptimisticSync();
 
             } catch (error) {
                 document.getElementById('ui_overall_pollen').innerText = "Data Error";
@@ -524,15 +532,207 @@
             } finally { document.getElementById('pollenLoader').classList.add('hidden'); }
         }
 
-        function changeDate(daysOffset) {
+        // --- OPTIMISTIC UI ENGINE LOGIC ---
+
+        // Called on every single keypress/slider change. 
+        // Instantly caches locally. Queues a network push for 2 seconds later.
+        function queueOptimisticSync() {
+             if (isProgrammaticUpdate) return;
+             
+             // 1. Instantly update the local cache (The Single Source of Truth)
+             saveStateToLocalCache();
+             
+             // 2. Set flags and UI Toast
+             hasPendingChanges = true;
+             clearTimeout(debounceTimer);
+             
+             const toast = document.getElementById('syncToast');
+             const toastIcon = document.getElementById('syncToastIcon');
+             const toastText = document.getElementById('syncToastText');
+             
+             toastIcon.className = "mr-2 loader !border-gray-500 !border-t-white !w-4 !h-4";
+             toastText.innerText = "Local cache updated. Pending sync...";
+             toast.classList.remove('opacity-0');
+
+             // 3. Queue the network push
+             debounceTimer = setTimeout(() => {
+                 executeNetworkSync();
+             }, 2000); 
+        }
+
+        // Reads the DOM and updates the local JS object immediately.
+        function saveStateToLocalCache() {
+            let currentDateStr = document.getElementById('record_date').value;
+            let targetDateString = new Date(currentDateStr).toDateString();
+            let isEditable = isDateEditable(currentDateStr);
+            
+            let selectedSymptoms = [];
+            document.querySelectorAll('.symptom-check:checked').forEach(cb => selectedSymptoms.push(cb.value));
+            
+            let hfSacsi = document.getElementById('hayfever_sacsi').value;
+            let hayfeverSymptomsFinal = selectedSymptoms.length > 0 ? `${selectedSymptoms.join(", ")} [SACSI: ${hfSacsi}]` : "";
+
+            let selectedInterventions = [];
+            document.querySelectorAll('input[id^="int_"]:checked').forEach(cb => {
+                let idSuffix = cb.id.split('_')[1];
+                let rating = document.getElementById('rate_' + idSuffix).value;
+                let prod = document.getElementById('prod_' + idSuffix).value;
+                let prodStr = prod ? ` [${prod}]` : "";
+                selectedInterventions.push(`${cb.value}${prodStr} (${rating}/5)`);
+            });
+
+            let generalSymptomsArray = [];
+            document.querySelectorAll('.symptom-row').forEach(row => {
+                let desc = row.querySelector('.sym-desc').value.trim();
+                let tag = row.querySelector('.sym-tag').value.trim();
+                let comment = row.querySelector('.sym-comment').value.trim();
+                let sacsi = row.querySelector('.sym-sacsi').value;
+                
+                let h = parseInt(row.querySelector('.sym-dur-hrs').value) || 0;
+                let m = parseInt(row.querySelector('.sym-dur-mins').value) || 0;
+                let totalHoursDecimal = h + (m / 60);
+
+                if (tag && activeMDMTags.length > 0 && !activeMDMTags.includes(tag.toLowerCase())) {
+                    if (!tag.startsWith('[UNVERIFIED]')) tag = '[UNVERIFIED] ' + tag;
+                }
+
+                if (desc || tag) {
+                    generalSymptomsArray.push({
+                        description: desc,
+                        cause: `SACSI: ${sacsi}`,
+                        duration: totalHoursDecimal > 0 ? totalHoursDecimal.toFixed(2) : "",
+                        comment: comment,
+                        tag: tag
+                    });
+                }
+            });
+            
+            let locToSave = document.getElementById('postcode_prefix').value;
+            let lvlToSave = document.getElementById('pollen_count_level').value;
+            let specToSave = document.getElementById('specific_pollens').value;
+
+            if (!isEditable) {
+                locToSave = currentRecordOriginalPollen.loc;
+                lvlToSave = currentRecordOriginalPollen.lvl;
+                specToSave = currentRecordOriginalPollen.spec;
+            }
+
+            if (!globalDataCache[targetDateString]) globalDataCache[targetDateString] = { metrics: [], hayfever: new Array(10).fill(""), symptoms: [] };
+            if (!globalDataCache[targetDateString].metrics) globalDataCache[targetDateString].metrics = [];
+            if (!globalDataCache[targetDateString].hayfever) globalDataCache[targetDateString].hayfever = new Array(10).fill("");
+            
+            globalDataCache[targetDateString].metrics[6] = document.getElementById('ambient_temp_celsius').value;
+            globalDataCache[targetDateString].metrics[11] = null; // Subjective energy deprecated
+            globalDataCache[targetDateString].metrics[12] = document.getElementById('golf_focus').value;
+            globalDataCache[targetDateString].metrics[13] = document.getElementById('daily_feedback').value;
+            globalDataCache[targetDateString].metrics[15] = document.getElementById('sleep_debt_manual').value;
+            
+            globalDataCache[targetDateString].hayfever[1] = locToSave;
+            globalDataCache[targetDateString].hayfever[2] = lvlToSave;
+            globalDataCache[targetDateString].hayfever[3] = hayfeverSymptomsFinal;
+            globalDataCache[targetDateString].hayfever[4] = parseToMinutes(document.getElementById('hayfever_dur_hrs').value, document.getElementById('hayfever_dur_mins').value);
+            globalDataCache[targetDateString].hayfever[5] = selectedInterventions.join(", ");
+            globalDataCache[targetDateString].hayfever[7] = specToSave;
+            globalDataCache[targetDateString].hayfever[8] = document.getElementById('hourly_pollen_data').value;
+
+            globalDataCache[targetDateString].symptoms = generalSymptomsArray.map(sym => [targetDateString, sym.description, sym.cause, sym.duration, new Date(), sym.comment, sym.tag]);
+            
+            localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
+            updateGlobalTagAutofill();
+        }
+
+        // Pushes the locally cached payload to Google Apps Script
+        function executeNetworkSync() {
+            if (!hasPendingChanges || isSyncing) return Promise.resolve();
+            
+            isSyncing = true;
+            const toastIcon = document.getElementById('syncToastIcon');
+            const toastText = document.getElementById('syncToastText');
+            
+            toastIcon.className = "mr-2 loader !border-emerald-400 !border-t-white !w-4 !h-4";
+            toastText.innerText = "Transmitting...";
+
+            let currentDateStr = document.getElementById('record_date').value;
+            let targetDateString = new Date(currentDateStr).toDateString();
+            
+            // Re-construct the payload strictly from what we just saved to the cache
+            const cachedDay = globalDataCache[targetDateString];
+            if (!cachedDay) return Promise.resolve();
+
+            let generalSymptomsArray = [];
+            if(cachedDay.symptoms) {
+                generalSymptomsArray = cachedDay.symptoms.map(sym => ({
+                    description: sym[1], cause: sym[2], duration: sym[3], comment: sym[5], tag: sym[6]
+                }));
+            }
+
+            const payload = {
+                record_date: currentDateStr,
+                ambient_temp_celsius: cachedDay.metrics[6],
+                sleep_debt_manual: cachedDay.metrics[15],
+                subjective_energy: null,
+                daily_feedback: cachedDay.metrics[13],
+                golf_focus: cachedDay.metrics[12],
+                hayfever_symptoms: cachedDay.hayfever[3],
+                hayfever_duration_mins: cachedDay.hayfever[4],
+                postcode_prefix: cachedDay.hayfever[1],
+                pollen_count_level: cachedDay.hayfever[2],
+                specific_pollens: cachedDay.hayfever[7],
+                hourly_pollen_data: cachedDay.hayfever[8],
+                allergy_interventions_with_success: cachedDay.hayfever[5],
+                general_symptoms_array: generalSymptomsArray
+            };
+
+            return fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === "success") {
+                    hasPendingChanges = false;
+                    toastIcon.className = "mr-2 text-emerald-400";
+                    toastIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+                    toastText.innerText = "Matrix Synchronized";
+                    setTimeout(() => { if(!hasPendingChanges) document.getElementById('syncToast').classList.add('opacity-0'); }, 2500);
+                } else throw new Error(data.message);
+            })
+            .catch((error) => {
+                toastIcon.className = "mr-2 text-red-500";
+                toastIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                toastText.innerText = "Sync Failed. Retrying...";
+                // Keep hasPendingChanges true so it retries on next interaction
+            })
+            .finally(() => {
+                isSyncing = false;
+            });
+        }
+
+        // The Deterministic Interlock. Only triggers a UI-freeze if you try to change dates while data is in transit.
+        async function handleDateSwitch(daysOffset, isDirectInput = false) {
             let dateInput = document.getElementById('record_date');
-            let currentDate = new Date(dateInput.value);
-            currentDate.setDate(currentDate.getDate() + daysOffset);
-            dateInput.valueAsDate = currentDate;
+            
+            // If there is data waiting in the 2-second debounce queue, FORCE it to save immediately before allowing the date to change
+            if (hasPendingChanges) {
+                clearTimeout(debounceTimer);
+                document.getElementById('ui-lock-overlay').style.display = 'flex';
+                
+                try {
+                    await executeNetworkSync();
+                } catch(e) {
+                    console.error("Failed to sync before date switch", e);
+                }
+                
+                document.getElementById('ui-lock-overlay').style.display = 'none';
+            }
+
+            if (!isDirectInput) {
+                let currentDate = new Date(dateInput.value);
+                currentDate.setDate(currentDate.getDate() + daysOffset);
+                dateInput.valueAsDate = currentDate;
+            }
+            
             renderDateFromCache(dateInput.value);
         }
 
-        document.getElementById('record_date').addEventListener('change', (e) => renderDateFromCache(e.target.value));
+        // --- END OPTIMISTIC UI LOGIC ---
 
         function addSymptomRow(desc = '', cause = '', durDecimal = '', comment = '', tag = '', sacsi = '1') {
             const container = document.getElementById('symptomsContainer');
@@ -550,11 +750,12 @@
             populateRowDurationWidget(clone, durDecimal);
             
             clone.querySelectorAll('.input-trigger').forEach(input => {
-                input.addEventListener('change', triggerSyncIndicator);
+                input.addEventListener('change', queueOptimisticSync);
+                input.addEventListener('input', queueOptimisticSync);
             });
             
             container.appendChild(clone);
-            if(!isProgrammaticUpdate) triggerSyncIndicator();
+            if(!isProgrammaticUpdate) queueOptimisticSync();
         }
 
         function updateGlobalTagAutofill() {
@@ -596,7 +797,6 @@
             document.getElementById('specific_pollens').value = '';
             document.getElementById('hourly_pollen_data').value = '';
             
-            // Reset Hayfever SACSI default
             document.getElementById('hayfever_sacsi').value = 1;
             updateSACSIText(document.getElementById('hayfever_sacsi'), 'text-emerald-800');
 
@@ -648,7 +848,6 @@
                         } catch(e) {}
                     }
 
-                    // Extract Hayfever SACSI
                     let symptomsStr = dayData.hayfever[3] || "";
                     let hfSacsiMatch = symptomsStr.match(/\[SACSI:\s*(\d+)\]/);
                     if (hfSacsiMatch) {
@@ -728,149 +927,7 @@
                 }
             }
             
-            const btn = document.querySelector('button[onclick="forceSync()"]');
-            btn.classList.remove('bg-orange-500', 'animate-pulse');
-            btn.classList.add('bg-indigo-600');
-            btn.innerText = "TRANSMIT & LOCK";
-            
             setTimeout(() => { isProgrammaticUpdate = false; }, 100); 
-        }
-
-        function triggerSyncIndicator() {
-             const btn = document.querySelector('button[onclick="forceSync()"]');
-             btn.classList.add('bg-orange-500', 'animate-pulse');
-             btn.classList.remove('bg-indigo-600');
-             btn.innerText = "UNSAVED CHANGES - TRANSMIT";
-        }
-
-        function forceSync() {
-            if (isProgrammaticUpdate) return;
-            
-            let currentDateStr = document.getElementById('record_date').value;
-            let targetDateString = new Date(currentDateStr).toDateString();
-            let isEditable = isDateEditable(currentDateStr);
-            
-            document.getElementById('ui-lock-overlay').style.display = 'flex';
-            
-            let selectedSymptoms = [];
-            document.querySelectorAll('.symptom-check:checked').forEach(cb => selectedSymptoms.push(cb.value));
-            
-            let hfSacsi = document.getElementById('hayfever_sacsi').value;
-            let hayfeverSymptomsFinal = selectedSymptoms.length > 0 ? `${selectedSymptoms.join(", ")} [SACSI: ${hfSacsi}]` : "";
-
-            let selectedInterventions = [];
-            document.querySelectorAll('input[id^="int_"]:checked').forEach(cb => {
-                let idSuffix = cb.id.split('_')[1];
-                let rating = document.getElementById('rate_' + idSuffix).value;
-                let prod = document.getElementById('prod_' + idSuffix).value;
-                let prodStr = prod ? ` [${prod}]` : "";
-                selectedInterventions.push(`${cb.value}${prodStr} (${rating}/5)`);
-            });
-
-            let generalSymptomsArray = [];
-            document.querySelectorAll('.symptom-row').forEach(row => {
-                let desc = row.querySelector('.sym-desc').value.trim();
-                let tag = row.querySelector('.sym-tag').value.trim();
-                let comment = row.querySelector('.sym-comment').value.trim();
-                let sacsi = row.querySelector('.sym-sacsi').value;
-                
-                let h = parseInt(row.querySelector('.sym-dur-hrs').value) || 0;
-                let m = parseInt(row.querySelector('.sym-dur-mins').value) || 0;
-                let totalHoursDecimal = h + (m / 60);
-
-                if (tag && activeMDMTags.length > 0 && !activeMDMTags.includes(tag.toLowerCase())) {
-                    if (!tag.startsWith('[UNVERIFIED]')) tag = '[UNVERIFIED] ' + tag;
-                }
-
-                if (desc || tag) {
-                    generalSymptomsArray.push({
-                        description: desc,
-                        cause: `SACSI: ${sacsi}`,
-                        duration: totalHoursDecimal > 0 ? totalHoursDecimal.toFixed(2) : "",
-                        comment: comment,
-                        tag: tag
-                    });
-                }
-            });
-            
-            let locToSave = document.getElementById('postcode_prefix').value;
-            let lvlToSave = document.getElementById('pollen_count_level').value;
-            let specToSave = document.getElementById('specific_pollens').value;
-
-            if (!isEditable) {
-                locToSave = currentRecordOriginalPollen.loc;
-                lvlToSave = currentRecordOriginalPollen.lvl;
-                specToSave = currentRecordOriginalPollen.spec;
-            }
-
-            const payload = {
-                record_date: currentDateStr,
-                ambient_temp_celsius: document.getElementById('ambient_temp_celsius').value,
-                sleep_debt_manual: document.getElementById('sleep_debt_manual').value,
-                subjective_energy: null,
-                daily_feedback: document.getElementById('daily_feedback').value,
-                
-                golf_focus: document.getElementById('golf_focus').value,
-                hayfever_symptoms: hayfeverSymptomsFinal,
-                hayfever_duration_mins: parseToMinutes(document.getElementById('hayfever_dur_hrs').value, document.getElementById('hayfever_dur_mins').value),
-                
-                postcode_prefix: locToSave,
-                pollen_count_level: lvlToSave,
-                specific_pollens: specToSave,
-                hourly_pollen_data: document.getElementById('hourly_pollen_data').value,
-                
-                allergy_interventions_with_success: selectedInterventions.join(", "),
-                general_symptoms_array: generalSymptomsArray
-            };
-
-            if (!globalDataCache[targetDateString]) globalDataCache[targetDateString] = { metrics: [], hayfever: new Array(10).fill(""), symptoms: [] };
-            if (!globalDataCache[targetDateString].metrics) globalDataCache[targetDateString].metrics = [];
-            if (!globalDataCache[targetDateString].hayfever) globalDataCache[targetDateString].hayfever = new Array(10).fill("");
-            
-            globalDataCache[targetDateString].metrics[6] = payload.ambient_temp_celsius;
-            globalDataCache[targetDateString].metrics[11] = payload.subjective_energy;
-            globalDataCache[targetDateString].metrics[12] = payload.golf_focus;
-            globalDataCache[targetDateString].metrics[13] = payload.daily_feedback;
-            globalDataCache[targetDateString].metrics[15] = payload.sleep_debt_manual;
-            
-            globalDataCache[targetDateString].hayfever[1] = payload.postcode_prefix;
-            globalDataCache[targetDateString].hayfever[2] = payload.pollen_count_level;
-            globalDataCache[targetDateString].hayfever[3] = payload.hayfever_symptoms;
-            globalDataCache[targetDateString].hayfever[4] = payload.hayfever_duration_mins;
-            globalDataCache[targetDateString].hayfever[5] = payload.allergy_interventions_with_success;
-            globalDataCache[targetDateString].hayfever[7] = payload.specific_pollens;
-            globalDataCache[targetDateString].hayfever[8] = payload.hourly_pollen_data;
-
-            globalDataCache[targetDateString].symptoms = generalSymptomsArray.map(sym => [targetDateString, sym.description, sym.cause, sym.duration, new Date(), sym.comment, sym.tag]);
-            localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
-
-            fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === "success") {
-                    document.getElementById('ui-lock-overlay').style.display = 'none';
-                    
-                    const btn = document.querySelector('button[onclick="forceSync()"]');
-                    btn.classList.remove('bg-orange-500', 'animate-pulse');
-                    btn.classList.add('bg-emerald-600');
-                    btn.innerText = "TRANSMISSION SECURE";
-                    
-                    setTimeout(() => {
-                        btn.classList.remove('bg-emerald-600');
-                        btn.classList.add('bg-indigo-600');
-                        btn.innerText = "TRANSMIT & LOCK";
-                    }, 2000);
-                    
-                } else throw new Error(data.message);
-            })
-            .catch((error) => {
-                document.getElementById('ui-lock-overlay').style.display = 'none';
-                alert("CRITICAL ERROR: Transmission failed. Data cached locally but not synced to central matrix.");
-                const btn = document.querySelector('button[onclick="forceSync()"]');
-                btn.innerText = "RETRY TRANSMISSION";
-            });
-
-            updateGlobalTagAutofill();
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -888,8 +945,8 @@
             document.getElementById('record_date').valueAsDate = new Date();
 
             document.querySelectorAll('.input-trigger').forEach(input => {
-                input.addEventListener('change', triggerSyncIndicator);
-                input.addEventListener('input', triggerSyncIndicator);
+                input.addEventListener('change', queueOptimisticSync);
+                input.addEventListener('input', queueOptimisticSync);
             });
 
             if (Object.keys(globalDataCache).length > 0) {
