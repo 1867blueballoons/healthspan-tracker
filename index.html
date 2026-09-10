@@ -16,6 +16,7 @@
     <link rel="apple-touch-icon" href="/healthspan-tracker/assets/icons/icon-192.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); min-height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding-bottom: 2rem;}
         .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: all 0.3s ease; }
@@ -30,24 +31,30 @@
         #sym_weary:checked + label { background-color: #a855f7; color: white; border-color: #9333ea; transform: scale(1.05); }
 
         .duration-widget input { text-align: center; font-weight: bold; }
-        #syncToast { transition: opacity 0.3s ease; }
+        
+        /* The UI Lock Overlay */
+        #ui-lock-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px);
+            z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
     </style>
 </head>
 <body class="text-gray-800 p-4 md:p-8">
 
-    <div class="max-w-3xl mx-auto relative">
-        
-        <!-- Auto-Save Status Indicator -->
-        <div id="syncToast" class="fixed top-4 right-4 bg-gray-900 text-white text-xs font-bold px-3 py-2 rounded-full shadow-lg opacity-0 pointer-events-none z-50 flex items-center">
-            <span id="syncToastIcon" class="mr-2">🔄</span>
-            <span id="syncToastText">Saving...</span>
-        </div>
+    <!-- Strict UI Lock Overlay -->
+    <div id="ui-lock-overlay">
+        <div class="loader !border-indigo-200 !border-t-indigo-600 w-12 h-12 mb-4"></div>
+        <h2 class="text-white text-xl font-bold tracking-widest">TRANSMITTING</h2>
+        <p class="text-indigo-200 text-sm mt-2">Enforcing State Lock...</p>
+    </div>
 
+    <div class="max-w-3xl mx-auto relative">
         <header class="text-center mb-6">
             <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight drop-shadow-lg">
                 Healthspan Metrics
             </h1>
-            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v2.7</span></p>
+            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v3.0</span></p>
         </header>
 
         <div id="loadingState" class="flex flex-col items-center justify-center py-12">
@@ -57,7 +64,6 @@
 
         <form id="healthspanForm" class="space-y-6 hidden">
             
-            <!-- Global Date Header -->
             <div class="flex justify-end mb-2">
                 <div class="glass-card p-3 border-4 border-yellow-400 bg-yellow-100 flex items-center space-x-3 shadow-lg">
                     <button type="button" onclick="changeDate(-1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl">&larr;</button>
@@ -69,7 +75,7 @@
                 </div>
             </div>
 
-            <!-- SECTION 1: Base Metrics -->
+            <!-- SECTION 1: Base Metrics (DEPRECATED SUBJECTIVE ENERGY) -->
             <div id="section_metrics" class="glass-card p-6 border-t-4 border-indigo-500">
                 <h2 class="text-xl font-bold text-indigo-800 mb-4 flex items-center"><span class="text-2xl mr-2">💤</span> Base Metrics</h2>
                 
@@ -86,21 +92,14 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1 flex justify-between">
-                            <span>Subjective Energy</span>
-                            <span id="energy_val_display" class="text-indigo-600 font-bold bg-indigo-100 px-2 rounded">5 / 10</span>
-                        </label>
-                        <input type="range" id="subjective_energy" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer mt-3 input-trigger" oninput="document.getElementById('energy_val_display').innerText = this.value + ' / 10'">
-                    </div>
+                <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
+                    <!-- Note: Subjective Energy input has been excised as per Target State Architecture -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Daily Feedback</label>
                         <textarea id="daily_feedback" rows="2" placeholder="General notes & adjustments..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50 input-trigger"></textarea>
                     </div>
                 </div>
                 
-                <!-- Golf Focus Row -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-1">Golf Focus</label>
@@ -151,7 +150,6 @@
                             </div>
                             <div class="flex items-center">
                                 <div id="pollenChart" class="flex-1 flex items-end justify-between h-14 gap-[2px] bg-white/50 p-1.5 rounded border border-emerald-200">
-                                    <!-- Bars injected here by JS -->
                                 </div>
                                 <div class="flex flex-col justify-between h-14 pl-2 text-[9px] text-emerald-700 font-bold whitespace-nowrap">
                                     <span id="chartMax">Max: --</span>
@@ -203,7 +201,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
                             <div class="flex items-center space-x-4">
                                 <input type="checkbox" id="int_sunglasses" value="Sunglasses" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('sunglasses')">
@@ -217,7 +214,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
                             <div class="flex items-center space-x-4">
                                 <input type="checkbox" id="int_spray" value="Nasal Spray" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('spray')">
@@ -231,7 +227,6 @@
                                 </div>
                             </div>
                         </div>
-
                         <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
                             <div class="flex items-center space-x-4">
                                 <input type="checkbox" id="int_tablets" value="Tablets" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('tablets')">
@@ -249,74 +244,83 @@
                 </div>
             </div>
 
-            <!-- SECTION 3: GeneralSymptoms -->
+            <!-- SECTION 3: GeneralSymptoms & SACSI -->
             <div id="section_symptoms" class="glass-card p-6 border-t-4 border-rose-500">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-rose-800 flex items-center"><span class="text-2xl mr-2">❤️‍🩹</span> General Symptoms</h2>
-                    <button type="button" onclick="addSymptomRow()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold py-2 px-4 rounded-lg text-sm border border-rose-300 transition-colors">+ Add Symptom</button>
+                    <h2 class="text-xl font-bold text-rose-800 flex items-center"><span class="text-2xl mr-2">❤️‍🩹</span> General Symptoms & SACSI</h2>
+                    <button type="button" onclick="addSymptomRow()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold py-2 px-4 rounded-lg text-sm border border-rose-300 transition-colors shadow-sm">+ Add Symptom</button>
                 </div>
                 
-                <div id="symptomsContainer" class="space-y-4">
+                <div id="symptomsContainer" class="space-y-6">
                     <!-- Dynamic Rows Injected Here -->
                 </div>
+            </div>
+            
+            <!-- EXPLICIT SAVE BUTTON (Replaces fragile auto-save) -->
+            <div class="flex justify-center mt-8">
+                <button type="button" onclick="forceSync()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xl py-4 px-12 rounded-xl shadow-xl transition-all transform hover:scale-105">
+                    TRANSMIT & LOCK
+                </button>
             </div>
         </form>
     </div>
 
-    <!-- Template for Symptom Row -->
+    <!-- Template for Symptom Row (WITH SACSI & MDM VERIFICATION) -->
     <template id="symptomRowTemplate">
-        <!-- Global Datalist for General Symptom Tags Auto-Fill -->
         <datalist id="globalSymptomTags"></datalist>
-        <div class="symptom-row bg-rose-50/50 p-4 rounded-lg border border-rose-100 relative">
-            <button type="button" onclick="this.closest('.symptom-row').remove(); queueAutoSave();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xl font-bold">&times;</button>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3 pr-6">
+        <div class="symptom-row bg-white p-5 rounded-xl border-2 border-rose-100 relative shadow-sm">
+            <button type="button" onclick="this.closest('.symptom-row').remove(); triggerSyncIndicator();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-2xl font-bold px-2">&times;</button>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pr-6">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Symptom</label>
-                    <input type="text" class="sym-desc w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500 input-trigger" placeholder="e.g. Migraine">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Symptom Description</label>
+                    <input type="text" class="sym-desc w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-gray-50" placeholder="e.g. Migraine">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Suspected Cause</label>
-                    <input type="text" class="sym-cause w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500 input-trigger" placeholder="e.g. Alcohol">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tag <span class="text-rose-500">*</span></label>
+                    <input type="text" maxlength="30" list="globalSymptomTags" class="sym-tag w-full p-3 border border-rose-300 rounded-lg bg-rose-50 focus:ring-2 focus:ring-rose-500 input-trigger font-bold text-rose-800" placeholder="e.g. Illness" onchange="verifyMDMTag(this)">
+                    <p class="text-[10px] font-bold text-rose-500 mt-1 tag-warning hidden"><i class="fa-solid fa-triangle-exclamation"></i> Unregistered tag. Will be flagged [UNVERIFIED] in pipeline.</p>
                 </div>
             </div>
-            <!-- Expanded Tag & Duration Row -->
-            <div class="mb-3 pr-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Duration</label>
-                    <div class="duration-widget flex items-center space-x-2">
-                        <input type="number" class="sym-dur-hrs w-16 p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" min="0" placeholder="0">
-                        <span class="text-xs font-medium text-gray-600">h</span>
-                        <input type="number" class="sym-dur-mins w-16 p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" min="0" max="59" placeholder="0">
-                        <span class="text-xs font-medium text-gray-600">m</span>
+
+            <!-- SACSI 10-Point Scale Injection -->
+            <div class="mb-5 bg-rose-50/50 p-4 rounded-lg border border-rose-100">
+                <label class="block text-xs font-bold text-rose-800 uppercase mb-2 flex justify-between items-center">
+                    <span>S.A.C.S.I. Scale (Severity)</span>
+                    <span class="sacsi-val-display bg-rose-200 text-rose-900 px-2 py-1 rounded text-lg font-black">1 / 10</span>
+                </label>
+                <input type="range" class="sym-sacsi w-full h-3 bg-rose-200 rounded-lg appearance-none cursor-pointer input-trigger" min="1" max="10" value="1" oninput="updateSACSIText(this)">
+                <p class="sacsi-text-anchor text-xs font-bold text-emerald-700 mt-3 text-center transition-all bg-white p-2 rounded shadow-sm border border-gray-200">
+                    Minor awareness. Barely perceptible. Zero impact.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                 <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Duration</label>
+                    <div class="duration-widget flex items-center space-x-2 bg-gray-50 p-2 rounded border border-gray-300">
+                        <input type="number" class="sym-dur-hrs w-16 p-2 text-center bg-transparent focus:outline-none input-trigger font-bold" min="0" placeholder="0">
+                        <span class="text-xs font-bold text-gray-500">h</span>
+                        <input type="number" class="sym-dur-mins w-16 p-2 text-center bg-transparent focus:outline-none input-trigger border-l border-gray-300 font-bold" min="0" max="59" placeholder="0">
+                        <span class="text-xs font-bold text-gray-500">m</span>
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 mb-1">Tag (Max 20)</label>
-                    <input type="text" maxlength="20" list="globalSymptomTags" class="sym-tag w-full p-2 border border-gray-300 rounded bg-white focus:ring-2 focus:ring-rose-500 input-trigger" placeholder="e.g. Relative, Illness">
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Detailed Context</label>
+                    <textarea class="sym-comment w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-gray-50" rows="2" placeholder="Cause, modifications, etc..."></textarea>
                 </div>
-            </div>
-            
-            <div>
-                <label class="block text-xs font-semibold text-gray-600 mb-1">Detailed Comment / Notes</label>
-                <textarea class="sym-comment w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-rose-500 input-trigger" rows="2" placeholder="Add additional context..."></textarea>
             </div>
         </div>
     </template>
 
     <script>
-        // REPLACE THIS URL WITH YOUR GOOGLE APPS SCRIPT WEB APP URL
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNwr_7iZJuOVdT9u1xHNy9sYEKHjFyJtZ6Q-pDui-Y4qTpLQdi4NT2NiUcoBxwUFDgmA/exec';
        
         let isProgrammaticUpdate = false;
-        let autoSaveTimer = null;
-        
-        // State protection constraint (Req 3): Protect original historical data so test queries do not overwrite cache
         let currentRecordOriginalPollen = { loc: '', lvl: '', spec: '' };
-        
-        // The Master Local Cache
         let globalDataCache = JSON.parse(localStorage.getItem('healthspan_cache')) || {};
+        let activeMDMTags = []; 
 
-        // Checks if a date is today or within the last 3 days
         function isDateEditable(dateStr) {
             const active = new Date(dateStr);
             active.setHours(0, 0, 0, 0);
@@ -326,7 +330,42 @@
             return diffDays >= 0 && diffDays <= 3;
         }
 
-        // --- SAFE POLLEN ICON PARSER ---
+        // --- SACSI Anchor Logic ---
+        function updateSACSIText(sliderElement) {
+            const val = parseInt(sliderElement.value);
+            const displayBox = sliderElement.closest('.bg-rose-50\\/50').querySelector('.sacsi-val-display');
+            const textBox = sliderElement.closest('.bg-rose-50\\/50').querySelector('.sacsi-text-anchor');
+            
+            displayBox.innerText = val + ' / 10';
+            
+            let text = "";
+            let color = "";
+            if (val <= 2) { text = "Minor awareness. Barely perceptible. Zero impact."; color = "text-emerald-700"; }
+            else if (val <= 4) { text = "Mild distraction. Noticeable at rest, easily ignored active."; color = "text-blue-700"; }
+            else if (val <= 6) { text = "Moderate disruption. Requires focus to maintain performance."; color = "text-yellow-700"; }
+            else if (val <= 8) { text = "Severe impediment. Forced behavioral modification."; color = "text-orange-700"; }
+            else if (val === 9) { text = "Critical failure. Unable to complete standard tasks."; color = "text-red-700"; }
+            else { text = "Complete systemic collapse. (Medical intervention required)."; color = "text-rose-900 font-black"; }
+            
+            textBox.innerText = text;
+            textBox.className = `sacsi-text-anchor text-xs font-bold mt-3 text-center transition-all bg-white p-2 rounded shadow-sm border border-gray-200 ${color}`;
+        }
+
+        // --- MDM Verification Logic ---
+        function verifyMDMTag(inputElement) {
+            const val = inputElement.value.trim().toLowerCase();
+            const warning = inputElement.nextElementSibling;
+            if (!val) { warning.classList.add('hidden'); return; }
+            
+            if (activeMDMTags.length > 0 && !activeMDMTags.includes(val)) {
+                warning.classList.remove('hidden');
+                inputElement.classList.add('border-red-500', 'bg-red-50');
+            } else {
+                warning.classList.add('hidden');
+                inputElement.classList.remove('border-red-500', 'bg-red-50');
+            }
+        }
+
         function parsePollenForUI(specificsString) {
             let tVal = '--', gVal = '--', wVal = '--';
             if(specificsString && specificsString.includes('|')) {
@@ -335,25 +374,21 @@
                     tVal = parts[0].split(': ')[1] || '--';
                     gVal = parts[1].split(': ')[1] || '--';
                     wVal = parts[2].split(': ')[1] || '--';
-                } catch(e) { console.error("Pollen parse error", e); }
+                } catch(e) {}
             }
             return `<span title="Tree Pollen">🌳 ${tVal}</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 ${gVal}</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 ${wVal}</span>`;
         }
 
-        // Check if Open-Meteo returned null/invalid hourly array values
         function hasValidPollenValues(hourly) {
             if (!hourly) return false;
             const keys = ['alder_pollen', 'birch_pollen', 'grass_pollen', 'mugwort_pollen', 'ragweed_pollen'];
-            return keys.some(key => 
-                Array.isArray(hourly[key]) && hourly[key].some(val => val !== null && val !== undefined)
-            );
+            return keys.some(key => Array.isArray(hourly[key]) && hourly[key].some(val => val !== null && val !== undefined));
         }
 
-        // --- UI Interactions ---
         function toggleInterventionExtras(id) {
-            const checkbox = document.getElementById('int_' + id);
+            const cb = document.getElementById('int_' + id);
             const extras = document.getElementById('extras_' + id);
-            if (checkbox.checked) {
+            if (cb.checked) {
                 extras.classList.remove('hidden');
                 extras.classList.add('flex');
             } else {
@@ -362,38 +397,24 @@
             }
         }
 
-        function parseToMinutes(hrs, mins) {
-            let h = parseInt(hrs) || 0;
-            let m = parseInt(mins) || 0;
-            return (h * 60) + m;
-        }
+        function parseToMinutes(hrs, mins) { return (parseInt(hrs) || 0) * 60 + (parseInt(mins) || 0); }
 
         function populateDurationWidget(totalMins, hrsId, minsId) {
-            if (!totalMins) {
-                document.getElementById(hrsId).value = '';
-                document.getElementById(minsId).value = '';
-                return;
-            }
-            let h = Math.floor(totalMins / 60);
-            let m = totalMins % 60;
-            document.getElementById(hrsId).value = h > 0 ? h : '';
-            document.getElementById(minsId).value = m > 0 ? m : '';
+            if (!totalMins) { document.getElementById(hrsId).value = ''; document.getElementById(minsId).value = ''; return; }
+            let h = Math.floor(totalMins / 60); let m = totalMins % 60;
+            document.getElementById(hrsId).value = h > 0 ? h : ''; document.getElementById(minsId).value = m > 0 ? m : '';
         }
 
         function populateRowDurationWidget(row, totalHrsDecimal) {
             if (!totalHrsDecimal) return;
             let totalMins = Math.round(parseFloat(totalHrsDecimal) * 60);
-            let h = Math.floor(totalMins / 60);
-            let m = totalMins % 60;
-            row.querySelector('.sym-dur-hrs').value = h > 0 ? h : '';
-            row.querySelector('.sym-dur-mins').value = m > 0 ? m : '';
+            row.querySelector('.sym-dur-hrs').value = Math.floor(totalMins / 60) || '';
+            row.querySelector('.sym-dur-mins').value = (totalMins % 60) || '';
         }
 
-        // --- EUROPEAN GEOCODING & POLLEN APIS ---
         async function getCoordinates(locationName) {
             const cleanName = locationName.trim();
             if (!cleanName) throw new Error("No location provided");
-            
             const cacheKey = 'geo_' + cleanName.toLowerCase();
             const cached = localStorage.getItem(cacheKey);
             if (cached) return JSON.parse(cached);
@@ -401,9 +422,7 @@
             const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanName)}&count=1&language=en&format=json`);
             if (!res.ok) throw new Error("Geocoding service unavailable");
             const data = await res.json();
-            
             if (!data.results || data.results.length === 0) throw new Error("Location not found");
-            
             const coords = { lat: data.results[0].latitude, lon: data.results[0].longitude };
             localStorage.setItem(cacheKey, JSON.stringify(coords)); 
             return coords;
@@ -412,27 +431,19 @@
         async function fetchLivePollenData(isAuto = false) {
             const locationName = document.getElementById('postcode_prefix').value;
             const helperText = document.getElementById('locationHelperText');
-            
             const activeDateStr = document.getElementById('record_date').value;
             const isEditable = isDateEditable(activeDateStr);
             
-            if (!locationName) {
-                document.getElementById('ui_overall_pollen').innerText = "Enter Location First";
-                return;
-            }
+            if (!locationName) { document.getElementById('ui_overall_pollen').innerText = "Enter Location First"; return; }
 
             document.getElementById('pollenLoader').classList.remove('hidden');
             if(!isAuto) helperText.innerText = "Resolving location...";
             helperText.className = "text-xs text-emerald-600 mt-2";
-            document.getElementById('pollenChartContainer').classList.add('hidden'); // Hide during fetch
+            document.getElementById('pollenChartContainer').classList.add('hidden');
 
             try {
                 const { lat, lon } = await getCoordinates(locationName);
-
-                // STRICT BOUNDARY CHECK: Copernicus Air Quality Model is Europe-only
-                if (lat < 30 || lat > 72 || lon < -25 || lon > 45) {
-                    throw new Error("Pollen model is restricted to European regions.");
-                }
+                if (lat < 30 || lat > 72 || lon < -25 || lon > 45) throw new Error("Pollen model is restricted to European regions.");
 
                 const isoDate = new Date(activeDateStr).toISOString().split('T')[0];
                 const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&start_date=${isoDate}&end_date=${isoDate}&timezone=Europe%2FLondon`;
@@ -440,44 +451,26 @@
                 const response = await fetch(url);
                 const data = await response.json();
                 
-                if (!data.hourly || !hasValidPollenValues(data.hourly)) {
-                    throw new Error("No data currently available for this location");
-                }
+                if (!data.hourly || !hasValidPollenValues(data.hourly)) throw new Error("No data currently available for this location");
                 
                 let maxTree = 0, maxGrass = 0, maxWeed = 0;
                 let hourlyTotals = [];
                 let maxHourlyTotal = 1;
 
-                // Generate metrics for the 24 hour bar chart and daily overall maxes
                 for (let i = 0; i < 24; i++) {
                     let tree = (data.hourly.alder_pollen[i] || 0) + (data.hourly.birch_pollen[i] || 0);
                     let grass = (data.hourly.grass_pollen[i] || 0);
                     let weed = (data.hourly.mugwort_pollen[i] || 0) + (data.hourly.ragweed_pollen[i] || 0);
-                    
-                    if (tree > maxTree) maxTree = tree;
-                    if (grass > maxGrass) maxGrass = grass;
-                    if (weed > maxWeed) maxWeed = weed;
-                    
-                    let hTotal = tree + grass + weed;
-                    hourlyTotals.push(hTotal);
+                    if (tree > maxTree) maxTree = tree; if (grass > maxGrass) maxGrass = grass; if (weed > maxWeed) maxWeed = weed;
+                    let hTotal = tree + grass + weed; hourlyTotals.push(hTotal);
                     if (hTotal > maxHourlyTotal) maxHourlyTotal = hTotal;
                 }
 
-                const getLevel = (val, modThresh, highThresh) => {
-                    if (val >= highThresh) return "High";
-                    if (val >= modThresh) return "Moderate";
-                    return "Low";
-                };
-
-                const treeLvl = getLevel(maxTree, 15, 90);
-                const grassLvl = getLevel(maxGrass, 10, 50);
-                const weedLvl = getLevel(maxWeed, 10, 50);
+                const getLevel = (val, modThresh, highThresh) => val >= highThresh ? "High" : val >= modThresh ? "Moderate" : "Low";
+                const treeLvl = getLevel(maxTree, 15, 90), grassLvl = getLevel(maxGrass, 10, 50), weedLvl = getLevel(maxWeed, 10, 50);
                 
                 const levels = [treeLvl, grassLvl, weedLvl];
-                let overall = "Low";
-                if (levels.includes("Moderate")) overall = "Moderate";
-                if (levels.includes("High")) overall = "High";
-                
+                let overall = levels.includes("High") ? "High" : levels.includes("Moderate") ? "Moderate" : "Low";
                 const specificsStr = `Tree: ${treeLvl} | Grass: ${grassLvl} | Weed: ${weedLvl}`;
 
                 document.getElementById('pollen_count_level').value = overall;
@@ -487,7 +480,6 @@
                 document.getElementById('ui_overall_pollen').innerText = `Overall: ${overall}`;
                 document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(specificsStr);
                 
-                // Draw the Bar Chart and set Min/Max
                 const minHourlyTotal = Math.min(...hourlyTotals);
                 document.getElementById('chartMax').innerText = `Max: ${Math.round(maxHourlyTotal)}`;
                 document.getElementById('chartMin').innerText = `Min: ${Math.round(minHourlyTotal)}`;
@@ -495,105 +487,77 @@
                 const chart = document.getElementById('pollenChart');
                 chart.innerHTML = '';
                 hourlyTotals.forEach((total, i) => {
-                    let color = '#34d399'; // Low (Emerald/Green)
-                    let levelStr = "Low";
-                    if (total >= 50) { color = '#f87171'; levelStr = "High"; } // Red
-                    else if (total >= 10) { color = '#fbbf24'; levelStr = "Moderate"; } // Yellow
-                    
+                    let color = total >= 50 ? '#f87171' : total >= 10 ? '#fbbf24' : '#34d399';
                     let pct = Math.max(5, (total / Math.max(maxHourlyTotal, 1)) * 100);
-                    chart.innerHTML += `<div class="flex-1 rounded-t-sm transition-all hover:opacity-75 cursor-pointer" style="background-color: ${color}; height: ${pct}%; min-height: 2px;" title="${i.toString().padStart(2, '0')}:00 - ${Math.round(total)} grains/m³ (${levelStr})"></div>`;
+                    chart.innerHTML += `<div class="flex-1 rounded-t-sm transition-all hover:opacity-75" style="background-color: ${color}; height: ${pct}%; min-height: 2px;"></div>`;
                 });
                 document.getElementById('pollenChartContainer').classList.remove('hidden');
                 
                 helperText.innerText = isEditable ? "Type any European city to update coordinates." : "Historical view. Location changes will not be saved.";
-                helperText.className = "text-xs text-emerald-600 mt-2";
 
-                if (isEditable && !isAuto) {
-                    queueAutoSave(); 
-                } else if (!isEditable && !isAuto) {
-                    showToast("Test Query: Not Saved", "ℹ️");
-                    setTimeout(hideToast, 2500);
-                }
+                if (isEditable && !isAuto) triggerSyncIndicator();
 
             } catch (error) {
-                console.error("API failed:", error);
                 document.getElementById('ui_overall_pollen').innerText = "Data Error";
-                
-                if (error.message === "No data currently available for this location" || error.message.includes("European")) {
-                    helperText.innerText = error.message;
-                } else {
-                    helperText.innerText = "Location not found or data unavailable.";
-                }
+                helperText.innerText = error.message;
                 helperText.className = "text-xs text-red-500 font-bold mt-2";
-                
-                // Clear UI on fail
                 if(!isAuto) {
-                    document.getElementById('pollen_count_level').value = "";
-                    document.getElementById('specific_pollens').value = "";
-                    document.getElementById('hourly_pollen_data').value = "";
-                    document.getElementById('ui_specific_pollens').innerHTML = `<span title="Tree Pollen">🌳 --</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 --</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 --</span>`;
+                    ['pollen_count_level', 'specific_pollens', 'hourly_pollen_data'].forEach(id => document.getElementById(id).value = '');
+                    document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI('');
                     document.getElementById('pollenChartContainer').classList.add('hidden');
                 }
-            } finally {
-                document.getElementById('pollenLoader').classList.add('hidden');
-            }
+            } finally { document.getElementById('pollenLoader').classList.add('hidden'); }
         }
 
-        // --- State Management & Fetching ---
         function changeDate(daysOffset) {
-            if (!isProgrammaticUpdate) commitDataToEcosystem(); 
-            
             let dateInput = document.getElementById('record_date');
             let currentDate = new Date(dateInput.value);
             currentDate.setDate(currentDate.getDate() + daysOffset);
             dateInput.valueAsDate = currentDate;
-            
             renderDateFromCache(dateInput.value);
         }
 
-        document.getElementById('record_date').addEventListener('change', (e) => {
-            if (!isProgrammaticUpdate) commitDataToEcosystem();
-            renderDateFromCache(e.target.value);
-        });
+        document.getElementById('record_date').addEventListener('change', (e) => renderDateFromCache(e.target.value));
 
-        function addSymptomRow(desc = '', cause = '', durDecimal = '', comment = '', tag = '') {
+        function addSymptomRow(desc = '', cause = '', durDecimal = '', comment = '', tag = '', sacsi = '1') {
             const container = document.getElementById('symptomsContainer');
             const template = document.getElementById('symptomRowTemplate');
             const clone = template.content.cloneNode(true);
             
             clone.querySelector('.sym-desc').value = desc;
-            clone.querySelector('.sym-cause').value = cause;
-            clone.querySelector('.sym-comment').value = comment;
+            clone.querySelector('.sym-comment').value = cause || comment; 
             clone.querySelector('.sym-tag').value = tag;
+            clone.querySelector('.sym-sacsi').value = sacsi;
+            
+            const slider = clone.querySelector('.sym-sacsi');
+            updateSACSIText(slider);
+            
             populateRowDurationWidget(clone, durDecimal);
             
             clone.querySelectorAll('.input-trigger').forEach(input => {
-                input.addEventListener('input', queueAutoSave);
-                input.addEventListener('change', queueAutoSave);
+                input.addEventListener('change', triggerSyncIndicator);
             });
             
             container.appendChild(clone);
-            if(!isProgrammaticUpdate) queueAutoSave();
+            if(!isProgrammaticUpdate) triggerSyncIndicator();
         }
 
         function updateGlobalTagAutofill() {
             const tagsSet = new Set();
-            // Scan local cache for all previously used tags
             for (let dateKey in globalDataCache) {
                 if (globalDataCache[dateKey].symptoms) {
                     globalDataCache[dateKey].symptoms.forEach(sym => {
-                        // sym[6] holds the tag in our ecosystem array mapping
-                        if (sym[6]) tagsSet.add(sym[6].trim());
+                        if (sym[6]) tagsSet.add(sym[6].trim().toLowerCase()); 
                     });
                 }
             }
-            // Populate the datalist
+            activeMDMTags = Array.from(tagsSet);
             const datalist = document.getElementById('globalSymptomTags');
             if (datalist) {
                 datalist.innerHTML = '';
-                tagsSet.forEach(tag => {
+                activeMDMTags.forEach(tag => {
                     let option = document.createElement('option');
-                    option.value = tag;
+                    option.value = tag.charAt(0).toUpperCase() + tag.slice(1);
                     datalist.appendChild(option);
                 });
             }
@@ -603,11 +567,8 @@
             isProgrammaticUpdate = true;
             let targetDateString = new Date(dateStr).toDateString();
             
-            // Clear Form
             document.getElementById('ambient_temp_celsius').value = '';
             document.getElementById('sleep_debt_manual').value = '';
-            document.getElementById('subjective_energy').value = 5;
-            document.getElementById('energy_val_display').innerText = '5 / 10';
             document.getElementById('daily_feedback').value = '';
             document.querySelectorAll('.symptom-check').forEach(cb => cb.checked = false);
             document.querySelectorAll('input[id^="int_"]').forEach(cb => { cb.checked = false; toggleInterventionExtras(cb.id.split('_')[1]); });
@@ -620,10 +581,8 @@
             document.getElementById('specific_pollens').value = '';
             document.getElementById('hourly_pollen_data').value = '';
             document.getElementById('ui_overall_pollen').innerText = 'Awaiting Data...';
-            document.getElementById('ui_specific_pollens').innerHTML = '<span title="Tree Pollen">🌳 --</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 --</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 --</span>';
+            document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI('');
             document.getElementById('pollenChartContainer').classList.add('hidden');
-            document.getElementById('locationHelperText').innerText = "Type any European city to update coordinates.";
-            document.getElementById('locationHelperText').className = "text-xs text-emerald-600 mt-2";
             document.getElementById('symptomsContainer').innerHTML = '';
             document.getElementById('golf_focus').value = '';
 
@@ -632,10 +591,6 @@
             if (dayData) {
                 if(dayData.metrics) {
                     document.getElementById('ambient_temp_celsius').value = dayData.metrics[6] || '';
-                    if(dayData.metrics[11]) {
-                        document.getElementById('subjective_energy').value = dayData.metrics[11];
-                        document.getElementById('energy_val_display').innerText = dayData.metrics[11] + ' / 10';
-                    }
                     document.getElementById('golf_focus').value = dayData.metrics[12] || '';
                     document.getElementById('daily_feedback').value = dayData.metrics[13] || '';
                     document.getElementById('sleep_debt_manual').value = dayData.metrics[15] || '';
@@ -643,58 +598,38 @@
                 
                 if(dayData.hayfever) {
                     let locationName = dayData.hayfever[1] || '';
-                    
                     if (!locationName && targetDateString === new Date().toDateString()) {
                         let sortedDates = Object.keys(globalDataCache).sort((a, b) => new Date(b) - new Date(a));
-                        for (let d of sortedDates) {
-                            if (globalDataCache[d].hayfever && globalDataCache[d].hayfever[1]) {
-                                locationName = globalDataCache[d].hayfever[1];
-                                break;
-                            }
-                        }
+                        for (let d of sortedDates) { if (globalDataCache[d].hayfever && globalDataCache[d].hayfever[1]) { locationName = globalDataCache[d].hayfever[1]; break; } }
                     }
-                    
                     document.getElementById('postcode_prefix').value = locationName;
                     
-                    let overall = dayData.hayfever[2] || 'No Data';
-                    let specifics = dayData.hayfever[7] || 'Tree: -- | Grass: -- | Weed: --';
-                    let hourlyDataStr = dayData.hayfever[8] || '';
+                    document.getElementById('pollen_count_level').value = dayData.hayfever[2] || '';
+                    document.getElementById('specific_pollens').value = dayData.hayfever[7] || '';
+                    document.getElementById('hourly_pollen_data').value = dayData.hayfever[8] || '';
                     
-                    document.getElementById('pollen_count_level').value = overall;
-                    document.getElementById('specific_pollens').value = specifics;
-                    document.getElementById('hourly_pollen_data').value = hourlyDataStr;
-                    
-                    document.getElementById('ui_overall_pollen').innerText = `Overall: ${overall}`;
-                    document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(specifics);
+                    document.getElementById('ui_overall_pollen').innerText = `Overall: ${dayData.hayfever[2] || 'No Data'}`;
+                    document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(dayData.hayfever[7]);
 
-                    // Render chart immediately from memory if available
-                    if (hourlyDataStr) {
+                    if (dayData.hayfever[8]) {
                         try {
-                            const hourlyTotals = JSON.parse(hourlyDataStr);
+                            const hourlyTotals = JSON.parse(dayData.hayfever[8]);
                             const chart = document.getElementById('pollenChart');
                             chart.innerHTML = '';
                             const maxHourlyTotal = Math.max(...hourlyTotals, 1);
-                            const minHourlyTotal = Math.min(...hourlyTotals);
-                            
                             document.getElementById('chartMax').innerText = `Max: ${Math.round(maxHourlyTotal)}`;
-                            document.getElementById('chartMin').innerText = `Min: ${Math.round(minHourlyTotal)}`;
-                            
-                            hourlyTotals.forEach((total, i) => {
-                                let color = '#34d399';
-                                let levelStr = "Low";
-                                if (total >= 50) { color = '#f87171'; levelStr = "High"; }
-                                else if (total >= 10) { color = '#fbbf24'; levelStr = "Moderate"; }
-                                
+                            document.getElementById('chartMin').innerText = `Min: ${Math.round(Math.min(...hourlyTotals))}`;
+                            hourlyTotals.forEach((total) => {
+                                let color = total >= 50 ? '#f87171' : total >= 10 ? '#fbbf24' : '#34d399';
                                 let pct = Math.max(5, (total / maxHourlyTotal) * 100);
-                                chart.innerHTML += `<div class="flex-1 rounded-t-sm transition-all hover:opacity-75 cursor-pointer" style="background-color: ${color}; height: ${pct}%; min-height: 2px;" title="${i.toString().padStart(2, '0')}:00 - ${Math.round(total)} grains/m³ (${levelStr})"></div>`;
+                                chart.innerHTML += `<div class="flex-1 rounded-t-sm" style="background-color: ${color}; height: ${pct}%; min-height: 2px;"></div>`;
                             });
                             document.getElementById('pollenChartContainer').classList.remove('hidden');
-                        } catch(e) { console.error("Error parsing cached graph data", e); }
+                        } catch(e) {}
                     }
 
                     let symptoms = dayData.hayfever[3] || "";
                     document.querySelectorAll('.symptom-check').forEach(cb => { if(symptoms.includes(cb.value)) cb.checked = true; });
-                    
                     populateDurationWidget(dayData.hayfever[4], 'hayfever_dur_hrs', 'hayfever_dur_mins');
                     
                     let interventions = dayData.hayfever[5] || "";
@@ -706,17 +641,26 @@
                             let match = interventions.match(new RegExp(cb.value + "\\s*(?:\\[(.*?)\\])?\\s*\\((\\d)"));
                             if(match) {
                                 if(match[1]) document.getElementById('prod_' + idSuffix).value = match[1];
-                                if(match[2]) {
-                                    document.getElementById('rate_' + idSuffix).value = match[2];
-                                    document.getElementById('rate_' + idSuffix).nextElementSibling.innerText = match[2];
-                                }
+                                if(match[2]) { document.getElementById('rate_' + idSuffix).value = match[2]; document.getElementById('rate_' + idSuffix).nextElementSibling.innerText = match[2]; }
                             }
                         }
                     });
                 }
                 
                 if(dayData.symptoms && dayData.symptoms.length > 0) {
-                    dayData.symptoms.forEach(sym => addSymptomRow(sym[1], sym[2], sym[3], sym[5], sym[6] || ''));
+                    dayData.symptoms.forEach(sym => {
+                         let sacsiVal = '1';
+                         let cleanComment = sym[2] || '';
+                         
+                         if (cleanComment.includes('SACSI:')) {
+                             const match = cleanComment.match(/SACSI:\s*(\d+)/);
+                             if (match) {
+                                 sacsiVal = match[1];
+                                 cleanComment = cleanComment.replace(/SACSI:\s*\d+/g, '').trim();
+                             }
+                         }
+                         addSymptomRow(sym[1], null, sym[3], cleanComment, sym[6] || '', sacsiVal);
+                    });
                 } else {
                     addSymptomRow();
                 }
@@ -731,7 +675,6 @@
                 }
             }
 
-            // If no location is set for this specific date, fallback to the most recently used location
             let locationInputVal = document.getElementById('postcode_prefix').value;
             if (!locationInputVal) {
                 let sortedDates = Object.keys(globalDataCache).sort((a, b) => new Date(b) - new Date(a));
@@ -743,49 +686,46 @@
                 }
             }
 
-            // Lock original data in memory to enforce protections against accidental saves
             currentRecordOriginalPollen = {
                 loc: document.getElementById('postcode_prefix').value,
                 lvl: document.getElementById('pollen_count_level').value,
                 spec: document.getElementById('specific_pollens').value
             };
             
-            // FIX: Always check if we have a location and fetch/render the pollen graph for this specific date
             let finalLocation = document.getElementById('postcode_prefix').value;
             if (finalLocation) {
-                // If the cached day data doesn't have hourly graph data stored yet, force a live fetch
                 let dayDataCheck = globalDataCache[targetDateString];
-                if (dayDataCheck && dayDataCheck.hayfever && dayDataCheck.hayfever[8]) {
-                    // It's already cached, our parser will handle it. But let's make sure the input matches.
-                    document.getElementById('postcode_prefix').value = finalLocation;
-                } else {
-                    // Fetch live for this new date target
+                if (!(dayDataCheck && dayDataCheck.hayfever && dayDataCheck.hayfever[8])) {
                     fetchLivePollenData(true);
                 }
             }
+            
+            // Reset button state
+            const btn = document.querySelector('button[onclick="forceSync()"]');
+            btn.classList.remove('bg-orange-500', 'animate-pulse');
+            btn.classList.add('bg-indigo-600');
+            btn.innerText = "TRANSMIT & LOCK";
+            
             setTimeout(() => { isProgrammaticUpdate = false; }, 100); 
         }
 
-        // --- Auto-Save Engine ---
-        function showToast(text, icon) {
-            const toast = document.getElementById('syncToast');
-            document.getElementById('syncToastText').innerText = text;
-            document.getElementById('syncToastIcon').innerText = icon;
-            toast.classList.remove('opacity-0');
+        // --- EXPLICIT TRANSMIT LOGIC ---
+        function triggerSyncIndicator() {
+             const btn = document.querySelector('button[onclick="forceSync()"]');
+             btn.classList.add('bg-orange-500', 'animate-pulse');
+             btn.classList.remove('bg-indigo-600');
+             btn.innerText = "UNSAVED CHANGES - TRANSMIT";
         }
-        function hideToast() { document.getElementById('syncToast').classList.add('opacity-0'); }
 
-        function queueAutoSave() {
+        function forceSync() {
             if (isProgrammaticUpdate) return;
-            clearTimeout(autoSaveTimer);
-            showToast("Pending save...", "⏳");
-            autoSaveTimer = setTimeout(commitDataToEcosystem, 1000); 
-        }
-
-        function commitDataToEcosystem() {
+            
             let currentDateStr = document.getElementById('record_date').value;
             let targetDateString = new Date(currentDateStr).toDateString();
             let isEditable = isDateEditable(currentDateStr);
+            
+            // ASYNCHRONOUS STATE LOCK INITIATION
+            document.getElementById('ui-lock-overlay').style.display = 'flex';
             
             let selectedSymptoms = [];
             document.querySelectorAll('.symptom-check:checked').forEach(cb => selectedSymptoms.push(cb.value));
@@ -802,23 +742,29 @@
             let generalSymptomsArray = [];
             document.querySelectorAll('.symptom-row').forEach(row => {
                 let desc = row.querySelector('.sym-desc').value.trim();
-                let cause = row.querySelector('.sym-cause').value.trim();
+                let tag = row.querySelector('.sym-tag').value.trim();
+                let comment = row.querySelector('.sym-comment').value.trim();
+                let sacsi = row.querySelector('.sym-sacsi').value;
+                
                 let h = parseInt(row.querySelector('.sym-dur-hrs').value) || 0;
                 let m = parseInt(row.querySelector('.sym-dur-mins').value) || 0;
                 let totalHoursDecimal = h + (m / 60);
 
-                if (desc || cause) {
+                if (tag && activeMDMTags.length > 0 && !activeMDMTags.includes(tag.toLowerCase())) {
+                    if (!tag.startsWith('[UNVERIFIED]')) tag = '[UNVERIFIED] ' + tag;
+                }
+
+                if (desc || tag) {
                     generalSymptomsArray.push({
                         description: desc,
-                        cause: cause,
+                        cause: `SACSI: ${sacsi}`,
                         duration: totalHoursDecimal > 0 ? totalHoursDecimal.toFixed(2) : "",
-                        comment: row.querySelector('.sym-comment').value,
-                        tag: row.querySelector('.sym-tag').value.trim()
+                        comment: comment,
+                        tag: tag
                     });
                 }
             });
             
-            // Safeguard Enforced: Revert location/pollen payload data to original state if we are out of the 3-day edit window
             let locToSave = document.getElementById('postcode_prefix').value;
             let lvlToSave = document.getElementById('pollen_count_level').value;
             let specToSave = document.getElementById('specific_pollens').value;
@@ -833,14 +779,13 @@
                 record_date: currentDateStr,
                 ambient_temp_celsius: document.getElementById('ambient_temp_celsius').value,
                 sleep_debt_manual: document.getElementById('sleep_debt_manual').value,
-                subjective_energy: document.getElementById('subjective_energy').value,
+                subjective_energy: null,
                 daily_feedback: document.getElementById('daily_feedback').value,
                 
                 golf_focus: document.getElementById('golf_focus').value,
                 hayfever_symptoms: selectedSymptoms.join(", "),
                 hayfever_duration_mins: parseToMinutes(document.getElementById('hayfever_dur_hrs').value, document.getElementById('hayfever_dur_mins').value),
                 
-                // Use protected payload values here
                 postcode_prefix: locToSave,
                 pollen_count_level: lvlToSave,
                 specific_pollens: specToSave,
@@ -850,13 +795,9 @@
                 general_symptoms_array: generalSymptomsArray
             };
 
-            // OPTIMISTIC UPDATE & NULL SAFETY CATCHES
-            if (!globalDataCache[targetDateString]) {
-                globalDataCache[targetDateString] = { metrics: [], hayfever: new Array(10).fill(""), symptoms: [] };
-            }
+            if (!globalDataCache[targetDateString]) globalDataCache[targetDateString] = { metrics: [], hayfever: new Array(10).fill(""), symptoms: [] };
             if (!globalDataCache[targetDateString].metrics) globalDataCache[targetDateString].metrics = [];
             if (!globalDataCache[targetDateString].hayfever) globalDataCache[targetDateString].hayfever = new Array(10).fill("");
-            if (!globalDataCache[targetDateString].symptoms) globalDataCache[targetDateString].symptoms = [];
             
             globalDataCache[targetDateString].metrics[6] = payload.ambient_temp_celsius;
             globalDataCache[targetDateString].metrics[11] = payload.subjective_energy;
@@ -873,30 +814,39 @@
             globalDataCache[targetDateString].hayfever[8] = payload.hourly_pollen_data;
 
             globalDataCache[targetDateString].symptoms = generalSymptomsArray.map(sym => [targetDateString, sym.description, sym.cause, sym.duration, new Date(), sym.comment, sym.tag]);
-            
             localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
 
-            showToast("Syncing...", "🔄");
             fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
             .then(res => res.json())
             .then(data => {
                 if(data.status === "success") {
-                    showToast("Saved", "✅");
-                    setTimeout(hideToast, 2500);
+                    // STATE UNLOCK ON SUCCESS
+                    document.getElementById('ui-lock-overlay').style.display = 'none';
+                    
+                    const btn = document.querySelector('button[onclick="forceSync()"]');
+                    btn.classList.remove('bg-orange-500', 'animate-pulse');
+                    btn.classList.add('bg-emerald-600');
+                    btn.innerText = "TRANSMISSION SECURE";
+                    
+                    setTimeout(() => {
+                        btn.classList.remove('bg-emerald-600');
+                        btn.classList.add('bg-indigo-600');
+                        btn.innerText = "TRANSMIT & LOCK";
+                    }, 2000);
+                    
                 } else throw new Error(data.message);
             })
             .catch((error) => {
-                showToast("Offline (Saved Locally)", "⚠️");
-                setTimeout(hideToast, 4000);
+                document.getElementById('ui-lock-overlay').style.display = 'none';
+                alert("CRITICAL ERROR: Transmission failed. Data cached locally but not synced to central matrix.");
+                const btn = document.querySelector('button[onclick="forceSync()"]');
+                btn.innerText = "RETRY TRANSMISSION";
             });
 
-            updateGlobalTagAutofill()
+            updateGlobalTagAutofill();
         }
 
-        // --- Initialization ---
         window.addEventListener('DOMContentLoaded', () => {
-            
-            // 1. Dynamically Generate 12-Hour Dropdown
             const sleepSelect = document.getElementById('sleep_debt_manual');
             sleepSelect.innerHTML = '<option value="">Select duration...</option>';
             for (let h = 0; h <= 12; h++) {
@@ -911,8 +861,8 @@
             document.getElementById('record_date').valueAsDate = new Date();
 
             document.querySelectorAll('.input-trigger').forEach(input => {
-                input.addEventListener('input', queueAutoSave);
-                input.addEventListener('change', queueAutoSave);
+                input.addEventListener('change', triggerSyncIndicator);
+                input.addEventListener('input', triggerSyncIndicator);
             });
 
             if (Object.keys(globalDataCache).length > 0) {
@@ -920,7 +870,6 @@
                 document.getElementById('healthspanForm').classList.remove('hidden');
                 renderDateFromCache(document.getElementById('record_date').value);
                 updateGlobalTagAutofill();
-                showToast("Fetching updates...", "🔄");
             }
 
             fetch(GOOGLE_SCRIPT_URL)
@@ -934,12 +883,11 @@
                         document.getElementById('healthspanForm').classList.remove('hidden');
                         
                         renderDateFromCache(document.getElementById('record_date').value);
-                        showToast("Up to date", "✅");
-                        setTimeout(hideToast, 2500);
+                        updateGlobalTagAutofill();
                     }
                 });
         });
-        // --- PWA Service Worker Registration ---
+        
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
