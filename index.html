@@ -599,10 +599,11 @@
                 if (desc || tag) {
                     generalSymptomsArray.push({
                         description: desc,
-                        cause: `SACSI: ${sacsi}`,
+                        cause: cause, // 'cause' was being polluted with SACSI. Now cleanly mapping 'comment'
+                        sacsi_severity: sacsi, // Unified standard nomenclature
                         duration: totalHoursDecimal > 0 ? totalHoursDecimal.toFixed(2) : "",
                         comment: comment,
-                        tag: tag
+                        theme: tag // Explicitly separated from global MDM
                     });
                 }
             });
@@ -674,14 +675,16 @@
                 daily_feedback: cachedDay.metrics[13],
                 golf_focus: cachedDay.metrics[12],
                 hayfever_symptoms: cachedDay.hayfever[3],
-                hayfever_duration_mins: cachedDay.hayfever[4],
+                hayfever_sacsi_severity: cachedDay.hayfever[4], // Unified standard nomenclature
+                hayfever_duration_mins: cachedDay.hayfever[5],
                 postcode_prefix: cachedDay.hayfever[1],
                 pollen_count_level: cachedDay.hayfever[2],
-                specific_pollens: cachedDay.hayfever[7],
-                hourly_pollen_data: cachedDay.hayfever[8],
-                allergy_interventions_with_success: cachedDay.hayfever[5],
+                specific_pollens: cachedDay.hayfever[8],
+                hourly_pollen_data: cachedDay.hayfever[9],
+                allergy_interventions_with_success: cachedDay.hayfever[6],
                 general_symptoms_array: generalSymptomsArray
             };
+            
 
             return fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
             .then(res => res.json())
