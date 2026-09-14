@@ -666,7 +666,12 @@
             let generalSymptomsArray = [];
             if(cachedDay.symptoms) {
                 generalSymptomsArray = cachedDay.symptoms.map(sym => ({
-                    description: sym[1], cause: sym[2], duration: sym[3], sacsi: sym[4], comment: sym[6], tag: sym[7]
+                    description: sym[1], 
+                    cause: sym[2], 
+                    sacsi_severity: sym[3], // FIXED: Taxonomy strictly aligned to backend MDM
+                    duration: sym[4], 
+                    comment: sym[6], 
+                    tag: sym[7]
                 }));
             }
 
@@ -701,7 +706,12 @@
             .catch((error) => {
                 toastIcon.className = "mr-2 text-red-500";
                 toastIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-                toastText.innerText = "Sync Failed. Retrying...";
+                toastText.innerText = "Schema Rejection: Check Apps Script";
+                
+                // CIRCUIT BREAKER: We must drop the pending flag so we don't trigger a 
+                // Hawkes Process retry storm on the next keystroke.
+                hasPendingChanges = false; 
+                console.error("ETL Pipeline Failure (Likely Apps Script Crash):", error);
             })
             .finally(() => {
                 isSyncing = false;
