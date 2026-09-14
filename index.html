@@ -571,7 +571,7 @@
             
             let hfSacsi = document.getElementById('hayfever_sacsi').value;
             // let hayfeverSymptomsFinal = selectedSymptoms.length > 0 ? `${selectedSymptoms.join(", ")} [SACSI: ${hfSacsi}]` : "";
-            let hayfeverSymptomsFinal = selectedSymptoms;
+            let hayfeverSymptomsFinal = selectedSymptoms.join(" ,");
             let selectedInterventions = [];
             document.querySelectorAll('input[id^="int_"]:checked').forEach(cb => {
                 let idSuffix = cb.id.split('_')[1];
@@ -674,7 +674,7 @@ const payload = {
     sleep_debt_manual: document.getElementById('sleep_debt_manual').value,
     daily_feedback: document.getElementById('daily_feedback').value,
     golf_focus: document.getElementById('golf_focus').value,
-    hayfever_symptoms: hayfeverSymptomsFinal, //selectedSymptoms.join(", "),
+    hayfever_symptoms: hayfeverSymptomsFinal,
     hayfever_sacsi_severity: document.getElementById('hayfever_sacsi').value, // Unified standard nomenclature
     hayfever_duration_mins: parseToMinutes(document.getElementById('hayfever_dur_hrs').value, document.getElementById('hayfever_dur_mins').value),
     postcode_prefix: locToSave,
