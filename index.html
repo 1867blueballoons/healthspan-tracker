@@ -570,8 +570,8 @@
             document.querySelectorAll('.symptom-check:checked').forEach(cb => selectedSymptoms.push(cb.value));
             
             let hfSacsi = document.getElementById('hayfever_sacsi').value;
-            let hayfeverSymptomsFinal = selectedSymptoms.length > 0 ? `${selectedSymptoms.join(", ")} [SACSI: ${hfSacsi}]` : "";
-
+            // let hayfeverSymptomsFinal = selectedSymptoms.length > 0 ? `${selectedSymptoms.join(", ")} [SACSI: ${hfSacsi}]` : "";
+            let hayfeverSymptomsFinal = selectedSymptoms;
             let selectedInterventions = [];
             document.querySelectorAll('input[id^="int_"]:checked').forEach(cb => {
                 let idSuffix = cb.id.split('_')[1];
@@ -636,7 +636,7 @@
             globalDataCache[targetDateString].hayfever[7] = specToSave;
             globalDataCache[targetDateString].hayfever[8] = document.getElementById('hourly_pollen_data').value;
 
-            globalDataCache[targetDateString].symptoms = generalSymptomsArray.map(sym => [targetDateString, sym.description, sym.cause, sym.duration, new Date(), sym.comment, sym.tag]);
+            globalDataCache[targetDateString].symptoms = generalSymptomsArray.map(sym => [targetDateString, sym.description, sym.cause, sym.sacsi, sym.duration, new Date(), sym.comment, sym.tag]);
             
             localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
             updateGlobalTagAutofill();
@@ -663,11 +663,30 @@
             let generalSymptomsArray = [];
             if(cachedDay.symptoms) {
                 generalSymptomsArray = cachedDay.symptoms.map(sym => ({
-                    description: sym[1], cause: sym[2], duration: sym[3], comment: sym[5], tag: sym[6]
+                    description: sym[1], cause: sym[2], sacsi: sym[4], duration: sym[3], comment: sym[5], tag: sym[6]
                 }));
             }
 
-            const payload = {
+            // Inside the final payload assembly:
+const payload = {
+    record_date: currentDateStr,
+    ambient_temp_celsius: document.getElementById('ambient_temp_celsius').value,
+    sleep_debt_manual: document.getElementById('sleep_debt_manual').value,
+    daily_feedback: document.getElementById('daily_feedback').value,
+    golf_focus: document.getElementById('golf_focus').value,
+    hayfever_symptoms: selectedSymptoms.join(", "),
+    hayfever_sacsi_severity: document.getElementById('hayfever_sacsi').value, // Unified standard nomenclature
+    hayfever_duration_mins: parseToMinutes(document.getElementById('hayfever_dur_hrs').value, document.getElementById('hayfever_dur_mins').value),
+    postcode_prefix: locToSave,
+    pollen_count_level: lvlToSave,
+    specific_pollens: specToSave,
+    hourly_pollen_data: document.getElementById('hourly_pollen_data').value,
+    allergy_interventions_with_success: selectedInterventions.join(", "),
+    general_symptoms_array: generalSymptomsArray
+};
+            
+            
+/*            const payload = {
                 record_date: currentDateStr,
                 ambient_temp_celsius: cachedDay.metrics[6],
                 sleep_debt_manual: cachedDay.metrics[15],
@@ -684,7 +703,7 @@
                 allergy_interventions_with_success: cachedDay.hayfever[6],
                 general_symptoms_array: generalSymptomsArray
             };
-            
+ */           
 
             return fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
             .then(res => res.json())
@@ -852,11 +871,11 @@
                     }
 
                     let symptomsStr = dayData.hayfever[3] || "";
-                    let hfSacsiMatch = symptomsStr.match(/\[SACSI:\s*(\d+)\]/);
+                    /*let hfSacsiMatch = symptomsStr.match(/\[SACSI:\s*(\d+)\]/);
                     if (hfSacsiMatch) {
                         document.getElementById('hayfever_sacsi').value = hfSacsiMatch[1];
                         symptomsStr = symptomsStr.replace(/\[SACSI:\s*\d+\]/g, '').trim();
-                    }
+                    }*/
                     updateSACSIText(document.getElementById('hayfever_sacsi'), 'text-emerald-800');
 
                     document.querySelectorAll('.symptom-check').forEach(cb => { if(symptomsStr.includes(cb.value)) cb.checked = true; });
@@ -882,7 +901,7 @@
                          let sacsiVal = '1';
                          let cleanComment = sym[2] || '';
                          
-                         if (cleanComment.includes('SACSI:')) {
+                         /*if (cleanComment.includes('SACSI:')) {
                              const match = cleanComment.match(/SACSI:\s*(\d+)/);
                              if (match) {
                                  sacsiVal = match[1];
@@ -890,6 +909,7 @@
                              }
                          }
                          addSymptomRow(sym[1], null, sym[3], cleanComment, sym[6] || '', sacsiVal);
+                         */
                     });
                 } else {
                     addSymptomRow();
