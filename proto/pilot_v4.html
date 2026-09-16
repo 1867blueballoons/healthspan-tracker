@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthspan Telemetry Pilot v4 - Composite Impact & Orange Ball</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); min-height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #f8fafc; padding: 1.5rem; }
+        .glass-panel { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .telemetry-box { background: #090d16; color: #38bdf8; font-family: 'Courier New', Courier, monospace; }
+        
+        .vertical-slider-container { display: flex; flex-direction: column; align-items: center; position: relative; height: 220px; justify-content: center; }
+        .vertical-range {
+            writing-mode: bt-lr;
+            -webkit-appearance: slider-vertical;
+            width: 12px;
+            height: 180px;
+            background: #334155;
+            outline: none;
+            border-radius: 6px;
+            touch-action: none;
+        }
+
+        .threshold-drawer { transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in-out; max-height: 0; opacity: 0; overflow: hidden; }
+        .threshold-drawer.open { max-height: 800px; opacity: 1; }
+
+        .radar-axis { stroke: rgba(255, 255, 255, 0.15); stroke-dasharray: 4 4; }
+        .radar-ring { fill: none; stroke: rgba(255, 255, 255, 0.1); }
+        .radar-polygon { fill: rgba(249, 115, 22, 0.25); stroke: #f97316; stroke-width: 2; transition: all 0.2s ease; }
+        .radar-handle { fill: #f97316; cursor: pointer; transition: transform 0.2s; }
+        .radar-handle:hover { transform: scale(1.3); fill: #ef4444; }
+
+        /* Dynamic Orange Ball of Misery */
+        #orange-ball {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: radial-gradient(circle at 30% 30%, #fed7aa 0%, #f97316 50%, #c2410c 100%);
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
+        }
+    </style>
+</head>
+<body class="max-w-7xl mx-auto">
+
+    <header class="mb-6 text-center">
+        <h1 class="text-2xl md:text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-amber-400">
+            Healthspan Telemetry Pilot v4
+        </h1>
+        <p class="text-slate-400 text-xs md:text-sm mt-1">Composite Impact Modeling • Dynamic Orange Ball Visualizer</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- LEFT COLUMN: CORE INPUT & THRESHOLD DRAWER (7 Cols) -->
+        <div class="lg:col-span-7 space-y-4">
+            
+            <div class="glass-panel p-3 flex justify-between items-center">
+                <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Event Class:</span>
+                <div class="flex space-x-2">
+                    <button onclick="setCategory('general')" id="btn-general" class="px-3 py-1.5 rounded-lg font-bold text-xs bg-orange-600 text-white shadow-md transition-all">General Symptom</button>
+                    <button onclick="setCategory('hayfever')" id="btn-hayfever" class="px-3 py-1.5 rounded-lg font-bold text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Hayfever Episode</button>
+                </div>
+            </div>
+
+            <div class="glass-panel p-5 space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 id="card-title" class="text-base font-bold text-orange-400 flex items-center">
+                        <i class="fa-solid fa-heart-pulse mr-2"></i> General Symptom Log
+                    </h2>
+                    <span id="active-category-badge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-orange-500/20 text-orange-300 border border-orange-500/30">General</span>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">Descriptor / Trigger</label>
+                    <input type="text" id="pilot-desc" oninput="updateTelemetry()" placeholder="e.g., Cervical Stiffness or High Pollen Count" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                </div>
+
+                <!-- DEPTH -->
+                <div class="bg-slate-900/40 p-4 rounded-xl border border-slate-800 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                    <div class="md:col-span-4 flex flex-col items-center justify-center bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+                        <label class="text-[10px] font-bold uppercase tracking-wider text-orange-400 mb-2 text-center">Depth (Severity)</label>
+                        <div class="vertical-slider-container">
+                            <input type="range" id="pilot-sacsi" min="1" max="10" value="1" class="vertical-range" oninput="handleSacsiInput(this.value)" onchange="updateTelemetry()">
+                        </div>
+                        <span id="display-sacsi" class="mt-2 bg-orange-500/20 text-orange-300 border border-orange-500/30 px-2.5 py-0.5 rounded font-black text-xs">1 / 10</span>
+                    </div>
+                    <div class="md:col-span-8 space-y-2">
+                        <div class="text-xs font-bold text-orange-300 uppercase tracking-wide">Biological Sinkhole Vector</div>
+                        <p id="sacsi-def" class="text-xs text-slate-300 bg-slate-950/40 p-3 rounded-lg border border-slate-800/80 leading-relaxed italic">
+                            Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted. Zero modification to daily routine.
+                        </p>
+                        <p class="text-[10px] text-slate-400">
+                            <i class="fa-solid fa-circle-info text-blue-400 mr-1"></i> Moving SACSI above <strong class="text-white">2</strong> automatically unlocks Persistence and Systemic Spread vectors.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- THRESHOLD DRAWER -->
+                <div id="threshold-drawer" class="threshold-drawer space-y-4 pt-2">
+                    
+                    <!-- PERSISTENCE -->
+                    <div class="bg-slate-900/40 p-3.5 rounded-xl border border-emerald-500/30">
+                        <label class="block text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-2">Persistence (Duration Band)</label>
+                        <div class="grid grid-cols-5 gap-1.5" id="ordinal-bands">
+                            <button onclick="setOrdinalPersistence(1, this)" class="persistence-btn p-1.5 rounded-lg bg-emerald-600 text-white text-center border border-emerald-500 text-xs shadow-md transition-all" data-val="1">
+                                <div class="font-bold text-[11px]">&lt;30m</div><div class="text-[8px] text-emerald-200">Transient</div>
+                            </button>
+                            <button onclick="setOrdinalPersistence(2, this)" class="persistence-btn p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-center border border-slate-700 text-xs transition-all" data-val="2">
+                                <div class="font-bold text-emerald-400 text-[11px]">30m-2h</div><div class="text-[8px] text-slate-400">Episodic</div>
+                            </button>
+                            <button onclick="setOrdinalPersistence(3, this)" class="persistence-btn p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-center border border-slate-700 text-xs transition-all" data-val="3">
+                                <div class="font-bold text-emerald-400 text-[11px]">2h-6h</div><div class="text-[8px] text-slate-400">Extended</div>
+                            </button>
+                            <button onclick="setOrdinalPersistence(4, this)" class="persistence-btn p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-center border border-slate-700 text-xs transition-all" data-val="4">
+                                <div class="font-bold text-emerald-400 text-[11px]">6h-16h</div><div class="text-[8px] text-slate-400">Persistent</div>
+                            </button>
+                            <button onclick="setOrdinalPersistence(5, this)" class="persistence-btn p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-center border border-slate-700 text-xs transition-all" data-val="5">
+                                <div class="font-bold text-emerald-400 text-[11px]">&gt;16h</div><div class="text-[8px] text-slate-400">Diurnal</div>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: ORANGE BALL & INTERACTIVE RADAR (5 Cols) -->
+        <div class="lg:col-span-5 space-y-4">
+            
+            <!-- ORANGE BALL VISUALIZER CARD -->
+            <div class="glass-panel p-5 text-center space-y-3">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-amber-400 flex items-center">
+                        <i class="fa-solid fa-fire mr-2"></i> Systemic Burden Index
+                    </h3>
+                    <span id="score-display" class="text-xs font-black text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded border border-amber-500/30">11 / 100</span>
+                </div>
+                
+                <div class="h-36 flex items-center justify-center relative bg-slate-950/60 rounded-xl border border-slate-800 overflow-hidden">
+                    <!-- Dynamic Orange Ball -->
+                    <div id="orange-ball" class="w-6 h-6 rounded-full"></div>
+                </div>
+                <p class="text-[11px] text-slate-400">
+                    Ball size and luminosity scale non-linearly with SACSI dominance.
+                </p>
+            </div>
+
+            <!-- INTERACTIVE RADAR CARD -->
+            <div class="glass-panel p-5 space-y-3">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-blue-400 flex items-center">
+                        <i class="fa-solid fa-radar mr-2"></i> Topological Spread (Breadth)
+                    </h3>
+                    <span class="text-[9px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded font-bold">0–3 Rating per Axis</span>
+                </div>
+
+                <div class="flex justify-center bg-slate-950/60 p-2 rounded-xl border border-slate-800 relative">
+                    <svg id="radar-svg" width="240" height="240" viewBox="0 0 280 280" class="cursor-pointer">
+                    </svg>
+                </div>
+                <div id="radar-labels-legend" class="grid grid-cols-2 gap-2 text-[10px] text-slate-300 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                </div>
+            </div>
+
+            <!-- TELEMETRY INSPECTOR -->
+            <div class="glass-panel p-5 space-y-3">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-2.5">
+                    <h3 class="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center">
+                        <i class="fa-solid fa-square-poll-vertical mr-2"></i> Telemetry Inspector
+                    </h3>
+                </div>
+                <div class="telemetry-box p-3 rounded-xl text-[11px] overflow-x-auto border border-slate-800 max-h-40">
+                    <pre id="json-output">Initializing telemetry stream...</pre>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        let pilotState = {
+            category: "general",
+            descriptor: "",
+            sacsi_depth: 1,
+            ordinal_persistence: 1,
+            breadth_axes: {
+                "Cognitive": 0,
+                "Neurological": 0,
+                "Motor": 0,
+                "Autonomic": 0,
+                "Gastrointestinal": 0,
+                "Affective": 0
+            },
+            composite_score: 11,
+            timestamp: new Date().toISOString()
+        };
+
+        const SACSI_DEFS = {
+            1: "Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted. Zero modification to daily routine.",
+            2: "Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted. Zero modification to daily routine.",
+            3: "Distracting / Moderate. Continuous cognitive load. You cannot ignore it, but you can push through.",
+            4: "Distracting / Moderate. Continuous cognitive load. You cannot ignore it, but you can push through.",
+            5: "Systemic Friction. Forces active behavioral modification: take analgesic or scale back workout.",
+            6: "Systemic Friction. Forces active behavioral modification: take analgesic or scale back workout.",
+            7: "Severe Impairment. Dictates your day. Actively disrupts baseline physiological functions: wakes you up, cancels training.",
+            8: "Severe Impairment. Dictates your day. Actively disrupts baseline physiological functions: wakes you up, cancels training.",
+            9: "Acute / Debilitating. Complete functional breakdown. Bedridden, incapacitated.",
+            10: "Acute / Debilitating. Complete functional breakdown. Bedridden, incapacitated."
+        };
+
+        const axesNames = ["Cognitive", "Neurological", "Motor", "Autonomic", "Gastrointestinal", "Affective"];
+        const axisIcons = ["🧠", "⚡", "🦾", "💧", "🍽️", "🎭"];
+        const center = 140;
+        const maxRadius = 90;
+
+        function setCategory(cat) {
+            pilotState.category = cat;
+            const isGeneral = cat === 'general';
+            
+            document.getElementById('btn-general').className = isGeneral ? "px-3 py-1.5 rounded-lg font-bold text-xs bg-orange-600 text-white shadow-md transition-all" : "px-3 py-1.5 rounded-lg font-bold text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all";
+            document.getElementById('btn-hayfever').className = !isGeneral ? "px-3 py-1.5 rounded-lg font-bold text-xs bg-orange-600 text-white shadow-md transition-all" : "px-3 py-1.5 rounded-lg font-bold text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all";
+            
+            const badge = document.getElementById('active-category-badge');
+            badge.innerText = isGeneral ? "General" : "Hayfever";
+            
+            const title = document.getElementById('card-title');
+            title.innerHTML = isGeneral ? '<i class="fa-solid fa-heart-pulse mr-2"></i> General Symptom Log' : '<i class="fa-solid fa-seedling mr-2"></i> Hayfever Episode Log';
+
+            updateTelemetry();
+        }
+
+        function handleSacsiInput(val) {
+            const depth = parseInt(val);
+            pilotState.sacsi_depth = depth;
+            document.getElementById('display-sacsi').innerText = depth + " / 10";
+            document.getElementById('sacsi-def').innerText = SACSI_DEFS[depth];
+
+            const drawer = document.getElementById('threshold-drawer');
+            if (depth > 2) {
+                drawer.classList.add('open');
+            } else {
+                drawer.classList.remove('open');
+                pilotState.ordinal_persistence = 1; // Reset if collapsed
+            }
+            updateTelemetry();
+        }
+
+        function setOrdinalPersistence(val, btn) {
+            pilotState.ordinal_persistence = val;
+            document.querySelectorAll('.persistence-btn').forEach(b => {
+                b.className = "persistence-btn p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-center border border-slate-700 text-xs transition-all";
+                b.querySelector('div:first-child').className = "font-bold text-emerald-400 text-[11px]";
+            });
+            btn.className = "persistence-btn p-1.5 rounded-lg bg-emerald-600 text-white text-center border border-emerald-500 text-xs shadow-md transition-all";
+            btn.querySelector('div:first-child').className = "font-bold text-[11px]";
+            updateTelemetry();
+        }
+
+        function initRadar() {
+            const svg = document.getElementById('radar-svg');
+            let html = '';
+
+            for (let r = 1; r <= 3; r++) {
+                let radius = (maxRadius / 3) * r;
+                let pts = '';
+                for (let i = 0; i < 6; i++) {
+                    let angle = (Math.PI / 3) * i - Math.PI / 2;
+                    let x = center + radius * Math.cos(angle);
+                    let y = center + radius * Math.sin(angle);
+                    pts += `${x},${y} `;
+                }
+                html += `<polygon points="${pts}" class="radar-ring" />`;
+            }
+
+            axesNames.forEach((name, i) => {
+                let angle = (Math.PI / 3) * i - Math.PI / 2;
+                let xEnd = center + maxRadius * Math.cos(angle);
+                let yEnd = center + maxRadius * Math.sin(angle);
+                html += `<line x1="${center}" y1="${center}" x2="${xEnd}" y2="${yEnd}" class="radar-axis" />`;
+
+                for (let val = 1; val <= 3; val++) {
+                    let r = (maxRadius / 3) * val;
+                    let hx = center + r * Math.cos(angle);
+                    let hy = center + r * Math.sin(angle);
+                    html += `<circle cx="${hx}" cy="${hy}" r="5" class="radar-handle" onclick="setAxisValue('${name}', ${val})" />`;
+                }
+            });
+
+            html += `<polygon id="radar-polygon" points="" class="radar-polygon" />`;
+
+            axesNames.forEach((name, i) => {
+                let angle = (Math.PI / 3) * i - Math.PI / 2;
+                let val = pilotState.breadth_axes[name];
+                let r = (maxRadius / 3) * val;
+                let hx = center + r * Math.cos(angle);
+                let hy = center + r * Math.sin(angle);
+                if (val > 0) {
+                    html += `<circle cx="${hx}" cy="${hy}" r="6" fill="#f97316" stroke="#fff" stroke-width="1.5" />`;
+                }
+            });
+
+            svg.innerHTML = html;
+            updateRadarPolygon();
+            updateLegend();
+        }
+
+        function setAxisValue(axisName, val) {
+            if (pilotState.breadth_axes[axisName] === val) {
+                pilotState.breadth_axes[axisName] = 0;
+            } else {
+                pilotState.breadth_axes[axisName] = val;
+            }
+            initRadar();
+            updateTelemetry();
+        }
+
+        function updateRadarPolygon() {
+            let pts = '';
+            axesNames.forEach((name, i) => {
+                let angle = (Math.PI / 3) * i - Math.PI / 2;
+                let val = pilotState.breadth_axes[name];
+                let r = (maxRadius / 3) * val;
+                let x = center + r * Math.cos(angle);
+                let y = center + r * Math.sin(angle);
+                pts += `${x},${y} `;
+            });
+            document.getElementById('radar-polygon').setAttribute('points', pts);
+        }
+
+        function updateLegend() {
+            const legend = document.getElementById('radar-labels-legend');
+            let html = '';
+            axesNames.forEach((name, i) => {
+                let val = pilotState.breadth_axes[name];
+                html += `<div class="flex justify-between items-center bg-slate-900/80 px-2 py-1 rounded border border-slate-800">
+                    <span>${axisIcons[i]} ${name}</span>
+                    <span class="font-bold text-orange-400">Lvl ${val}</span>
+                </div>`;
+            });
+            legend.innerHTML = html;
+        }
+
+        function calculateCompositeScore() {
+            const s = pilotState.sacsi_depth;
+            const p = pilotState.ordinal_persistence;
+            const bSum = Object.values(pilotState.breadth_axes).reduce((a, b) => a + b, 0);
+
+            // Weighted formula ensuring SACSI dominance
+            // Max possible: (10*8) + (5*3) + (18*3) = 80 + 15 + 54 = 149, normalized to ~100
+            let rawScore = (s * 8) + (p * 3) + (bSum * 3);
+            let normalized = Math.min(100, Math.round((rawScore / 135) * 100));
+            return Math.max(10, normalized);
+        }
+
+        function updateOrangeBall(score) {
+            const ball = document.getElementById('orange-ball');
+            const display = document.getElementById('score-display');
+            
+            display.innerText = score + " / 100";
+
+            // Size scaling from 20px to 110px
+            let size = 20 + (score / 100) * 90;
+            ball.style.width = size + 'px';
+            ball.style.height = size + 'px';
+
+            // Luminosity and shadow scaling
+            let blur = 10 + (score / 100) * 35;
+            let opacity = 0.4 + (score / 100) * 0.6;
+            ball.style.boxShadow = `0 0 ${blur}px rgba(249, 115, 22, ${opacity}), inset 0 0 ${blur/2}px rgba(254, 215, 170, ${opacity})`;
+        }
+
+        function updateTelemetry() {
+            pilotState.descriptor = document.getElementById('pilot-desc').value;
+            pilotState.composite_score = calculateCompositeScore();
+            pilotState.timestamp = new Date().toISOString();
+
+            updateOrangeBall(pilotState.composite_score);
+            document.getElementById('json-output').innerText = JSON.stringify(pilotState, null, 2);
+        }
+
+        window.onload = () => {
+            initRadar();
+            updateTelemetry();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthspan Telemetry & UI Pilot Laboratory</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%); min-height: 100vh; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #f8fafc; padding: 2rem; }
+        .glass-panel { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .telemetry-box { background: #090d16; color: #38bdf8; font-family: 'Courier New', Courier, monospace; }
+        .domain-chip input:checked + span { background-color: #f43f5e; color: white; border-color: #e11d48; box-shadow: 0 0 12px rgba(244, 63, 94, 0.4); }
+    </style>
+</head>
+<body class="max-w-7xl mx-auto">
+
+    <header class="mb-8 text-center">
+        <h1 class="text-3xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+            Healthspan Telemetry & UI Pilot Laboratory
+        </h1>
+        <p class="text-slate-400 text-sm mt-1">Unified Symptom Ontology Sandbox • Testing Depth, Ordinal Persistence, and Systemic Breadth</p>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- UI INTERACTIVE EXPERIMENTAL ZONE (7 Cols) -->
+        <div class="lg:col-span-7 space-y-6">
+            
+            <!-- Category Switcher -->
+            <div class="glass-panel p-4 flex justify-between items-center">
+                <span class="text-xs font-bold uppercase tracking-widest text-slate-400">Event Ontology Class:</span>
+                <div class="flex space-x-2">
+                    <button onclick="setCategory('general')" id="btn-general" class="px-4 py-2 rounded-lg font-bold text-xs bg-rose-600 text-white shadow-lg transition-all">General Symptom</button>
+                    <button onclick="setCategory('hayfever')" id="btn-hayfever" class="px-4 py-2 rounded-lg font-bold text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all">Hayfever Episode</button>
+                </div>
+            </div>
+
+            <!-- MAIN EXPERIMENTAL CARD -->
+            <div class="glass-panel p-6 space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 id="card-title" class="text-lg font-bold text-rose-400 flex items-center">
+                        <i class="fa-solid fa-heart-pulse mr-2"></i> General Symptom Telemetry Vector
+                    </h2>
+                    <span id="active-category-badge" class="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">General</span>
+                </div>
+
+                <!-- Description / Trigger -->
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Descriptor / Exogenous Trigger</label>
+                    <input type="text" id="pilot-desc" oninput="updateTelemetry()" placeholder="e.g., Acute Cervical Stiffness or High Pollen Vector" class="w-full bg-slate-900/80 border border-slate-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none">
+                </div>
+
+                <!-- 1. DEPTH (SACSI Slider with Jitter-Filter / Release-to-Commit) -->
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-rose-400">1. Depth: S.A.C.S.I Severity</label>
+                        <span id="display-sacsi" class="bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2.5 py-0.5 rounded font-black text-sm">3 / 10</span>
+                    </div>
+                    <!-- Experimental Jitter Filter: Uses 'change' (commit on release) instead of unthrottled 'input' -->
+                    <input type="range" id="pilot-sacsi" min="1" max="10" value="3" oninput="previewSacsi(this.value)" onchange="updateTelemetry()" class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-rose-500">
+                    <p id="sacsi-def" class="text-xs text-slate-400 mt-2 italic">Distracting / Moderate. Continuous cognitive load, but you can push through.</p>
+                </div>
+
+                <!-- 2. PERSISTENCE (Ordinal Temporal Buckets replacing stopwatches) -->
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">2. Persistence: Functional Duration Band</label>
+                    <div class="grid grid-cols-5 gap-2" id="ordinal-bands">
+                        <button onclick="setOrdinalPersistence(1, this)" class="persistence-btn p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-center border border-slate-700 text-xs font-semibold transition-all" data-val="1">
+                            <div class="font-bold text-emerald-400">&lt;30m</div><div class="text-[9px] text-slate-400 mt-0.5">Transient</div>
+                        </button>
+                        <button onclick="setOrdinalPersistence(2, this)" class="persistence-btn p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-center border border-slate-700 text-xs font-semibold transition-all" data-val="2">
+                            <div class="font-bold text-emerald-400">30m-2h</div><div class="text-[9px] text-slate-400 mt-0.5">Episodic</div>
+                        </button>
+                        <button onclick="setOrdinalPersistence(3, this)" class="persistence-btn p-2 rounded-lg bg-emerald-600 text-white text-center border border-emerald-500 text-xs font-semibold shadow-lg transition-all" data-val="3">
+                            <div class="font-bold">2h-6h</div><div class="text-[9px] text-emerald-200 mt-0.5">Extended</div>
+                        </button>
+                        <button onclick="setOrdinalPersistence(4, this)" class="persistence-btn p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-center border border-slate-700 text-xs font-semibold transition-all" data-val="4">
+                            <div class="font-bold text-emerald-400">6h-16h</div><div class="text-[9px] text-slate-400 mt-0.5">Persistent</div>
+                        </button>
+                        <button onclick="setOrdinalPersistence(5, this)" class="persistence-btn p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-center border border-slate-700 text-xs font-semibold transition-all" data-val="5">
+                            <div class="font-bold text-emerald-400">&gt;16h</div><div class="text-[9px] text-slate-400 mt-0.5">Diurnal</div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. BREADTH (Systemic Spread Multi-Domain Impact Matrix) -->
+                <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="text-xs font-bold uppercase tracking-wider text-blue-400">3. Breadth: Systemic Spread (Topological Footprint)</label>
+                        <span id="display-breadth" class="text-xs font-bold text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded border border-blue-500/30">1 Domain Active</span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-3">
+                        <label class="domain-chip cursor-pointer">
+                            <input type="checkbox" value="Cognitive" onchange="updateTelemetry()" class="hidden" checked>
+                            <span class="block p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 text-center transition-all">🧠 Cognitive / Focus</span>
+                        </label>
+                        <label class="domain-chip cursor-pointer">
+                            <input type="checkbox" value="Neurological" onchange="updateTelemetry()" class="hidden">
+                            <span class="block p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 text-center transition-all">⚡ Neurological / Pain</span>
+                        </label>
+                        <label class="domain-chip cursor-pointer">
+                            <input type="checkbox" value="Motor" onchange="updateTelemetry()" class="hidden">
+                            <span class="block p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 text-center transition-all">🦾 Motor / Fatigue</span>
+                        </label>
+                        <label class="domain-chip cursor-pointer">
+                            <input type="checkbox" value="Autonomic" onchange="updateTelemetry()" class="hidden">
+                            <span class="block p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 text-center transition-all">💧 Vasomotor / Histamine</span>
+                        </label>
+                        <label class="domain-chip cursor-pointer">
+                            <input type="checkbox" value="Gastrointestinal" onchange="updateTelemetry()" class="hidden">
+                            <span class="block p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 text-center transition-all">🍽️ Gastrointestinal</span>
+                        </label>
+                        <label class="domain-chip cursor-pointer">
+                            <input type="checkbox" value="Affective" onchange="updateTelemetry()" class="hidden">
+                            <span class="block p-2.5 rounded-lg bg-slate-800 border border-slate-700 text-xs font-medium text-slate-300 text-center transition-all">🎭 Mood / Affect</span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- BEHIND-THE-SCENES TELEMETRY INSPECTOR (5 Cols) -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="glass-panel p-6 sticky top-8 space-y-4">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                    <h3 class="text-sm font-bold uppercase tracking-widest text-emerald-400 flex items-center">
+                        <i class="fa-solid fa-square-poll-vertical mr-2"></i> Real-Time Telemetry Inspector
+                    </h3>
+                    <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded font-bold">Live Model Payload</span>
+                </div>
+
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    This JSON structure represents the unified physiological event vector flowing into your regression models. Notice how category, depth, ordinal persistence, and breadth are cleanly isolated to prevent confounding.
+                </p>
+
+                <!-- JSON TELEMETRY OUTPUT CONTAINER -->
+                <div class="telemetry-box p-4 rounded-xl text-xs overflow-x-auto border border-slate-800 shadow-inner max-h-96">
+                    <pre id="json-output">Initializing telemetry stream...</pre>
+                </div>
+
+                <!-- STATISTICAL INSIGHT BANNER -->
+                <div class="bg-blue-950/40 border border-blue-500/30 p-4 rounded-xl text-xs space-y-2">
+                    <div class="font-bold text-blue-300 flex items-center">
+                        <i class="fa-solid fa-lightbulb mr-2 text-yellow-400"></i> Statistical Advantage
+                    </div>
+                    <p class="text-slate-300 leading-normal">
+                        By capturing <strong class="text-white">Breadth ($B \in [1,6]$)</strong> alongside <strong class="text-white">Depth ($D \in [1,10]$)</strong>, our Lasso regression can isolate true systemic immune activation from localized discomfort, drastically reducing false positives when evaluating supplement ATEs.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Pilot State Engine
+        let pilotState = {
+            category: "general",
+            descriptor: "",
+            sacsi_depth: 3,
+            ordinal_persistence: 3, // Default Band 3 (2h-6h)
+            systemic_breadth_domains: ["Cognitive"],
+            timestamp: new Date().toISOString()
+        };
+
+        const SACSI_DEFS = {
+            1: "Sub-Clinical / Nuisance. Zero routine modification.",
+            2: "Sub-Clinical / Nuisance. Zero routine modification.",
+            3: "Distracting / Moderate. Continuous cognitive load, push through.",
+            4: "Distracting / Moderate. Continuous cognitive load, push through.",
+            5: "Systemic Friction. Forces active behavioral modification/meds.",
+            6: "Systemic Friction. Forces active behavioral modification/meds.",
+            7: "Severe Impairment. Wakes you up, cancels training.",
+            8: "Severe Impairment. Wakes you up, cancels training.",
+            9: "Acute / Debilitating. Complete functional breakdown, bedridden.",
+            10: "Acute / Debilitating. Complete functional breakdown, bedridden."
+        };
+
+        function setCategory(cat) {
+            pilotState.category = cat;
+            const isGeneral = cat === 'general';
+            
+            document.getElementById('btn-general').className = isGeneral ? "px-4 py-2 rounded-lg font-bold text-xs bg-rose-600 text-white shadow-lg transition-all" : "px-4 py-2 rounded-lg font-bold text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all";
+            document.getElementById('btn-hayfever').className = !isGeneral ? "px-4 py-2 rounded-lg font-bold text-xs bg-emerald-600 text-white shadow-lg transition-all" : "px-4 py-2 rounded-lg font-bold text-xs bg-slate-800 text-slate-300 hover:bg-slate-700 transition-all";
+            
+            const badge = document.getElementById('active-category-badge');
+            badge.innerText = isGeneral ? "General" : "Hayfever";
+            badge.className = isGeneral ? "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30" : "text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+            
+            const title = document.getElementById('card-title');
+            title.innerHTML = isGeneral ? '<i class="fa-solid fa-heart-pulse mr-2"></i> General Symptom Telemetry Vector' : '<i class="fa-solid fa-seedling mr-2"></i> Hayfever Episode Telemetry Vector';
+            title.className = isGeneral ? "text-lg font-bold text-rose-400 flex items-center" : "text-lg font-bold text-emerald-400 flex items-center";
+
+            updateTelemetry();
+        }
+
+        function previewSacsi(val) {
+            document.getElementById('display-sacsi').innerText = val + " / 10";
+            document.getElementById('sacsi-def').innerText = SACSI_DEFS[val];
+        }
+
+        function setOrdinalPersistence(val, btn) {
+            pilotState.ordinal_persistence = val;
+            document.querySelectorAll('.persistence-btn').forEach(b => {
+                b.className = "persistence-btn p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-center border border-slate-700 text-xs font-semibold transition-all";
+                b.querySelector('div:first-child').className = "font-bold text-emerald-400";
+            });
+            btn.className = "persistence-btn p-2 rounded-lg bg-emerald-600 text-white text-center border border-emerald-500 text-xs font-semibold shadow-lg transition-all";
+            btn.querySelector('div:first-child').className = "font-bold text-white";
+            updateTelemetry();
+        }
+
+        function updateTelemetry() {
+            pilotState.descriptor = document.getElementById('pilot-desc').value;
+            pilotState.sacsi_depth = parseInt(document.getElementById('pilot-sacsi').value);
+            
+            let checkedDomains = [];
+            document.querySelectorAll('.domain-chip input:checked').forEach(cb => checkedDomains.push(cb.value));
+            pilotState.systemic_breadth_domains = checkedDomains;
+            pilotState.timestamp = new Date().toISOString();
+
+            // Render live JSON
+            document.getElementById('json-output').innerText = JSON.stringify(pilotState, null, 2);
+            document.getElementById('display-breadth').innerText = checkedDomains.length + " Domain" + (checkedDomains.length === 1 ? "" : "s") + " Active";
+        }
+
+        // Initialize display
+        updateTelemetry();
+    </script>
+</body>
+</html>

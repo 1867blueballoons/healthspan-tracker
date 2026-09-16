@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Healthspan Daily Tracker</title>
-    
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#1e1b4b">
     <meta name="mobile-web-app-capable" content="yes">
@@ -22,929 +21,939 @@
         .loader { border: 4px solid rgba(255,255,255,0.2); border-top: 4px solid #fff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .symptom-check + label { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-        #sym_sneezing:checked + label { background-color: #3b82f6; color: white; border-color: #2563eb; transform: scale(1.05); }
-        #sym_runny:checked + label { background-color: #06b6d4; color: white; border-color: #0891b2; transform: scale(1.05); }
-        #sym_eyes:checked + label { background-color: #ec4899; color: white; border-color: #db2777; transform: scale(1.05); }
-        #sym_headache:checked + label { background-color: #ef4444; color: white; border-color: #dc2626; transform: scale(1.05); }
-        #sym_weary:checked + label { background-color: #a855f7; color: white; border-color: #9333ea; transform: scale(1.05); }
-
-        .duration-widget input { text-align: center; font-weight: bold; }
-        
         #ui-lock-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px);
             z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center;
         }
-        
         #syncToast { transition: opacity 0.3s ease; }
+
+        /* Top-Down Vertical SACSI Slider (0 at Top, 10 at Bottom) */
+        .vertical-slider-container { display: flex; flex-direction: column; align-items: center; position: relative; height: 210px; justify-content: center; }
+        .vertical-range-topdown {
+            writing-mode: bt-lr;
+            -webkit-appearance: slider-vertical;
+            transform: rotate(180deg);
+            width: 14px;
+            height: 190px;
+            background: #cbd5e1;
+            outline: none;
+            border-radius: 6px;
+            touch-action: none;
+            cursor: pointer;
+        }
+
+        .threshold-drawer { transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in-out; max-height: 0; opacity: 0; overflow: hidden; }
+        .threshold-drawer.open { max-height: 800px; opacity: 1; }
+
+        .radar-sector-touch { cursor: pointer; transition: fill 0.2s, opacity 0.2s; }
+        .radar-sector-touch:hover { fill: rgba(249, 115, 22, 0.15); }
+        .radar-axis-line { stroke: rgba(148, 163, 184, 0.4); stroke-dasharray: 3 3; }
+        .radar-grid-ring { fill: none; stroke: rgba(148, 163, 184, 0.3); }
+
+        .orange-ball-element {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: radial-gradient(circle at 30% 30%, #fed7aa 0%, #f97316 50%, #c2410c 100%);
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
+        }
     </style>
 </head>
 <body class="text-gray-800 p-4 md:p-8">
 
-    <div id="ui-lock-overlay">
-        <div class="loader !border-indigo-200 !border-t-indigo-600 w-12 h-12 mb-4"></div>
-        <h2 class="text-white text-xl font-bold tracking-widest uppercase" id="lock-overlay-title">Enforcing State Lock</h2>
-        <p class="text-indigo-200 text-sm mt-2" id="lock-overlay-desc">Securing unsaved data before temporal shift...</p>
-    </div>
-    
-    <div id="syncToast" class="fixed top-4 right-4 bg-gray-900 text-white text-xs font-bold px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none z-50 flex items-center border border-gray-700">
-        <span id="syncToastIcon" class="mr-2 loader !border-gray-500 !border-t-white !w-4 !h-4"></span>
-        <span id="syncToastText" class="tracking-wide">Syncing to Matrix...</span>
+<div id="ui-lock-overlay">
+    <div class="loader !border-indigo-200 !border-t-indigo-600 w-12 h-12 mb-4"></div>
+    <h2 class="text-white text-xl font-bold tracking-widest uppercase" id="lock-overlay-title">Enforcing State Lock</h2>
+    <p class="text-indigo-200 text-sm mt-2" id="lock-overlay-desc">Securing unsaved data before temporal shift...</p>
+</div>
+
+<div id="syncToast" class="fixed top-4 right-4 bg-gray-900 text-white text-xs font-bold px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none z-50 flex items-center border border-gray-700">
+    <span id="syncToastIcon" class="mr-2 loader !border-gray-500 !border-t-white !w-4 !h-4"></span>
+    <span id="syncToastText" class="tracking-wide">Syncing to Matrix...</span>
+</div>
+
+<div class="max-w-4xl mx-auto relative">
+    <header class="text-center mb-6">
+        <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight drop-shadow-lg">
+            Healthspan Metrics
+        </h1>
+        <p class="text-indigo-200 mt-2 font-medium">Unified Telemetry Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v5.0</span></p>
+    </header>
+
+    <div id="loadingState" class="flex flex-col items-center justify-center py-12">
+        <div class="loader mb-4"></div>
+        <p class="text-white font-medium">Syncing ecosystem...</p>
     </div>
 
-    <div class="max-w-3xl mx-auto relative">
-        <header class="text-center mb-6">
-            <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight drop-shadow-lg">
-                Healthspan Metrics
-            </h1>
-            <p class="text-indigo-200 mt-2 font-medium">Daily Logging Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v4.3</span></p>
-        </header>
-
-        <div id="loadingState" class="flex flex-col items-center justify-center py-12">
-            <div class="loader mb-4"></div>
-            <p class="text-white font-medium">Syncing ecosystem...</p>
+    <form id="healthspanForm" class="space-y-6 hidden">
+        <div class="flex justify-end mb-2">
+            <div class="glass-card p-3 border-4 border-yellow-400 bg-yellow-100 flex items-center space-x-3 shadow-lg">
+                <button type="button" onclick="handleDateSwitch(-1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl transition-transform hover:scale-110">&larr;</button>
+                <div>
+                    <label class="block text-xs font-bold text-yellow-800 uppercase tracking-wide text-center">Active Record Date</label>
+                    <input type="date" id="record_date" required class="bg-yellow-200 text-yellow-900 text-2xl font-black p-2 rounded text-center border-none focus:ring-2 focus:ring-yellow-500 cursor-pointer" onchange="handleDateSwitch(0, true)">
+                </div>
+                <button type="button" onclick="handleDateSwitch(1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl transition-transform hover:scale-110">&rarr;</button>
+            </div>
         </div>
 
-        <form id="healthspanForm" class="space-y-6 hidden">
-            <div class="flex justify-end mb-2">
-                <div class="glass-card p-3 border-4 border-yellow-400 bg-yellow-100 flex items-center space-x-3 shadow-lg">
-                    <button type="button" onclick="handleDateSwitch(-1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl transition-transform hover:scale-110">&larr;</button>
-                    <div>
-                        <label class="block text-xs font-bold text-yellow-800 uppercase tracking-wide text-center">Active Record Date</label>
-                        <input type="date" id="record_date" required class="bg-yellow-200 text-yellow-900 text-2xl font-black p-2 rounded text-center border-none focus:ring-2 focus:ring-yellow-500 cursor-pointer" onchange="handleDateSwitch(0, true)">
-                    </div>
-                    <button type="button" onclick="handleDateSwitch(1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl transition-transform hover:scale-110">&rarr;</button>
+        <!-- SECTION 1: Base Metrics -->
+        <div id="section_metrics" class="glass-card p-6 border-t-4 border-indigo-500">
+            <h2 class="text-xl font-bold text-indigo-800 mb-4 flex items-center"><span class="text-2xl mr-2">😴</span> Base Metrics</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Ambient Temp (°C)</label>
+                    <input type="number" step="0.1" id="ambient_temp_celsius" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50 input-trigger">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Sleep Debt Duration</label>
+                    <select id="sleep_debt_manual" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-lg bg-gray-50 cursor-pointer input-trigger"></select>
+                    <p class="text-xs text-indigo-600 mt-1 font-medium">Strict 10-minute interval selection (Max 12h)</p>
                 </div>
             </div>
 
-            <!-- SECTION 1: Base Metrics -->
-            <div id="section_metrics" class="glass-card p-6 border-t-4 border-indigo-500">
-                <h2 class="text-xl font-bold text-indigo-800 mb-4 flex items-center"><span class="text-2xl mr-2">💤</span> Base Metrics</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Ambient Temp (°C)</label>
-                        <input type="number" step="0.1" id="ambient_temp_celsius" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50 input-trigger">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Sleep Debt Duration</label>
-                        <select id="sleep_debt_manual" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold text-lg bg-gray-50 cursor-pointer input-trigger">
-                        </select>
-                        <p class="text-xs text-indigo-600 mt-1 font-medium">Strict 10-minute interval selection (Max 12h)</p>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Daily Feedback</label>
-                        <textarea id="daily_feedback" rows="2" placeholder="General notes & adjustments..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50 input-trigger"></textarea>
-                    </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Golf Focus</label>
-                        <select id="golf_focus" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold bg-gray-50 cursor-pointer input-trigger">
-                            <option value="">Select focus level...</option>
-                            <option value="1 - High Focus">1 - High Focus</option>
-                            <option value="2 - Mental Fatigue">2 - Mental Fatigue</option>
-                            <option value="3 - Physical Fatigue">3 - Physical Fatigue</option>
-                        </select>
-                    </div>
+            <div class="grid grid-cols-1 md:grid-cols-1 gap-6">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Daily Feedback</label>
+                    <textarea id="daily_feedback" rows="2" placeholder="General notes & adjustments..." class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-gray-50 input-trigger"></textarea>
                 </div>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Golf Focus</label>
+                    <select id="golf_focus" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-bold bg-gray-50 cursor-pointer input-trigger">
+                        <option value="">Select focus level...</option>
+                        <option value="1 - High Focus">1 - High Focus</option>
+                        <option value="2 - Mental Fatigue">2 - Mental Fatigue</option>
+                        <option value="3 - Physical Fatigue">3 - Physical Fatigue</option>
+                    </select>
+                </div>
+            </div>
+        </div>
 
-            <!-- SECTION 2: HayFever -->
-            <div id="section_hayfever" class="glass-card p-6 border-t-4 border-emerald-500">
-                <h2 class="text-xl font-bold text-emerald-800 mb-4 flex items-center"><span class="text-2xl mr-2">🌿</span> HayFever Tracking</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100 flex flex-col justify-between">
+        <!-- SECTION 2: Environmental Pollen Context -->
+        <div id="section_hayfever" class="glass-card p-6 border-t-4 border-emerald-500">
+            <h2 class="text-xl font-bold text-emerald-800 mb-4 flex items-center"><span class="text-2xl mr-2">🌿</span> Environmental Location & Pollen Context</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100 flex flex-col justify-between">
+                    <div>
+                        <label class="block text-xs font-bold text-emerald-800 uppercase tracking-wide mb-1">Location / Town (Europe)</label>
+                        <input type="text" id="postcode_prefix" placeholder="e.g. Wilmslow or Paris" class="w-full p-2 border border-emerald-200 rounded bg-white focus:ring-2 focus:ring-emerald-500 input-trigger font-semibold" onchange="fetchLivePollenData()">
+                    </div>
+                    <p id="locationHelperText" class="text-xs text-emerald-600 mt-2">Type any European city to update coordinates.</p>
+                </div>
+
+                <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100 shadow-inner relative flex flex-col justify-between">
+                    <div id="pollenLoader" class="absolute inset-0 bg-emerald-50/90 flex items-center justify-center rounded-lg z-10 hidden">
+                        <div class="loader !border-emerald-200 !border-t-emerald-600"></div>
+                    </div>
+                    <div class="flex justify-between items-start">
                         <div>
-                            <label class="block text-xs font-bold text-emerald-800 uppercase tracking-wide mb-1">Location / Town (Europe)</label>
-                            <input type="text" id="postcode_prefix" placeholder="e.g. Wilmslow or Paris" class="w-full p-2 border border-emerald-200 rounded bg-white focus:ring-2 focus:ring-emerald-500 input-trigger font-semibold" onchange="fetchLivePollenData()">
+                            <p class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Pollen Exogenous Model</p>
+                            <h3 id="ui_overall_pollen" class="text-xl font-black text-emerald-900">Awaiting Data...</h3>
                         </div>
-                        <p id="locationHelperText" class="text-xs text-emerald-600 mt-2">Type any European city to update coordinates.</p>
+                        <button type="button" onclick="fetchLivePollenData()" class="text-emerald-600 hover:text-emerald-800 p-1 text-sm font-bold bg-white rounded shadow-sm px-2 border border-emerald-200" title="Force Refresh API">🔄 Refresh</button>
+                    </div>
+                    <div id="ui_specific_pollens" class="text-xs md:text-sm font-medium text-emerald-700 bg-white/70 p-2 rounded border border-emerald-200 mt-2 flex justify-around">
+                        <span title="Tree Pollen">🌲 --</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 --</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 --</span>
                     </div>
 
-                    <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100 shadow-inner relative flex flex-col justify-between">
-                        <div id="pollenLoader" class="absolute inset-0 bg-emerald-50/90 flex items-center justify-center rounded-lg z-10 hidden">
-                            <div class="loader !border-emerald-200 !border-t-emerald-600"></div>
+                    <div id="pollenChartContainer" class="mt-3 hidden w-full">
+                        <div class="flex justify-between items-center mb-1">
+                            <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">24-Hour Pollen Trend</p>
                         </div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <p class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Pollen Data</p>
-                                <h3 id="ui_overall_pollen" class="text-xl font-black text-emerald-900">Awaiting Data...</h3>
-                            </div>
-                            <button type="button" onclick="fetchLivePollenData()" class="text-emerald-600 hover:text-emerald-800 p-1 text-sm font-bold bg-white rounded shadow-sm px-2 border border-emerald-200" title="Force Refresh API">🔄 Refresh</button>
-                        </div>
-                        <div id="ui_specific_pollens" class="text-xs md:text-sm font-medium text-emerald-700 bg-white/70 p-2 rounded border border-emerald-200 mt-2 flex justify-around">
-                            <span title="Tree Pollen">🌳 --</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 --</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 --</span>
-                        </div>
-
-                        <div id="pollenChartContainer" class="mt-3 hidden w-full">
-                            <div class="flex justify-between items-center mb-1">
-                                <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">24-Hour Pollen Trend</p>
-                            </div>
-                            <div class="flex items-center">
-                                <div id="pollenChart" class="flex-1 flex items-end justify-between h-14 gap-[2px] bg-white/50 p-1.5 rounded border border-emerald-200">
-                                </div>
-                                <div class="flex flex-col justify-between h-14 pl-2 text-[9px] text-emerald-700 font-bold whitespace-nowrap">
-                                    <span id="chartMax">Max: --</span>
-                                    <span id="chartMin">Min: --</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <input type="hidden" id="pollen_count_level" value="">
-                        <input type="hidden" id="specific_pollens" value="">
-                        <input type="hidden" id="hourly_pollen_data" value="">
-                    </div>
-                </div>
-                
-                <div class="mb-6">
-                    <label class="block text-sm font-bold text-gray-700 mb-3">Symptoms Present Today:</label>
-                    <div class="flex flex-wrap gap-3">
-                        <div class="relative"><input type="checkbox" id="sym_sneezing" value="Sneezing" class="symptom-check hidden input-trigger"><label for="sym_sneezing" class="cursor-pointer px-4 py-2 rounded-full border-2 border-blue-300 bg-blue-50 text-blue-800 font-bold transition-all text-sm block">🤧 Sneezing</label></div>
-                        <div class="relative"><input type="checkbox" id="sym_runny" value="Runny Nose" class="symptom-check hidden input-trigger"><label for="sym_runny" class="cursor-pointer px-4 py-2 rounded-full border-2 border-cyan-300 bg-cyan-50 text-cyan-800 font-bold transition-all text-sm block">💧 Runny Nose</label></div>
-                        <div class="relative"><input type="checkbox" id="sym_eyes" value="Itchy Eyes" class="symptom-check hidden input-trigger"><label for="sym_eyes" class="cursor-pointer px-4 py-2 rounded-full border-2 border-pink-300 bg-pink-50 text-pink-800 font-bold transition-all text-sm block">👁️ Itchy Eyes</label></div>
-                        <div class="relative"><input type="checkbox" id="sym_headache" value="Headache" class="symptom-check hidden input-trigger"><label for="sym_headache" class="cursor-pointer px-4 py-2 rounded-full border-2 border-red-300 bg-red-50 text-red-800 font-bold transition-all text-sm block">🤕 Headache</label></div>
-                        <div class="relative"><input type="checkbox" id="sym_weary" value="Weariness" class="symptom-check hidden input-trigger"><label for="sym_weary" class="cursor-pointer px-4 py-2 rounded-full border-2 border-purple-300 bg-purple-50 text-purple-800 font-bold transition-all text-sm block">🥱 Weariness</label></div>
-                    </div>
-                </div>
-
-                <div class="sacsi-container mb-6 bg-emerald-50 p-4 rounded-lg border border-emerald-100">
-                    <label class="block text-xs font-bold text-emerald-800 uppercase mb-2 flex justify-between items-center">
-                        <span>HayFever S.A.C.S.I. (Severity)</span>
-                        <span class="sacsi-val-display bg-emerald-200 text-emerald-900 px-2 py-1 rounded text-lg font-black">1 / 10</span>
-                    </label>
-                    <input type="range" id="hayfever_sacsi" class="w-full h-3 bg-emerald-200 rounded-lg appearance-none cursor-pointer input-trigger" min="1" max="10" value="1" oninput="updateSACSIText(this, 'text-emerald-800')">
-                    <p class="sacsi-text-anchor text-sm font-normal leading-tight mt-3 text-left transition-all bg-white p-3 rounded shadow-sm border border-emerald-200"></p>
-                </div>
-
-                <div class="mb-6">
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Total Symptom Duration</label>
-                    <div class="duration-widget flex items-center space-x-2 w-full md:w-1/2">
-                        <input type="number" id="hayfever_dur_hrs" min="0" max="24" placeholder="0" class="w-20 p-2 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-emerald-500 input-trigger">
-                        <span class="text-sm font-medium text-gray-600">hrs</span>
-                        <input type="number" id="hayfever_dur_mins" min="0" max="59" placeholder="0" class="w-20 p-2 border border-gray-300 rounded bg-gray-50 focus:ring-2 focus:ring-emerald-500 input-trigger">
-                        <span class="text-sm font-medium text-gray-600">mins</span>
-                    </div>
-                </div>
-
-                <div class="border-t border-gray-200 pt-4">
-                    <label class="block text-sm font-bold text-gray-700 mb-3">Interventions & Products Used (1=Poor, 5=Great):</label>
-                    <div class="space-y-4">
-                        <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex items-center space-x-4">
-                                <input type="checkbox" id="int_eyedrops" value="Eyedrops" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('eyedrops')">
-                                <label class="font-bold text-gray-700">Eyedrops</label>
-                            </div>
-                            <div id="extras_eyedrops" class="hidden mt-3 flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 pl-9">
-                                <input type="text" id="prod_eyedrops" placeholder="Product (e.g. Hycosan)" class="p-2 border border-gray-300 rounded text-sm flex-1 input-trigger">
-                                <div class="flex items-center space-x-2 bg-white px-3 py-1 rounded shadow-sm border border-gray-200">
-                                    <span class="text-xs font-bold text-gray-400">Rate:</span>
-                                    <input type="range" id="rate_eyedrops" min="1" max="5" value="3" class="w-24 input-trigger" oninput="this.nextElementSibling.innerText = this.value"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex items-center space-x-4">
-                                <input type="checkbox" id="int_sunglasses" value="Sunglasses" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('sunglasses')">
-                                <label class="font-bold text-gray-700">Sunglasses</label>
-                            </div>
-                            <div id="extras_sunglasses" class="hidden mt-3 flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 pl-9">
-                                <input type="text" id="prod_sunglasses" placeholder="Brand/Style (optional)" class="p-2 border border-gray-300 rounded text-sm flex-1 input-trigger">
-                                <div class="flex items-center space-x-2 bg-white px-3 py-1 rounded shadow-sm border border-gray-200">
-                                    <span class="text-xs font-bold text-gray-400">Rate:</span>
-                                    <input type="range" id="rate_sunglasses" min="1" max="5" value="3" class="w-24 input-trigger" oninput="this.nextElementSibling.innerText = this.value"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex items-center space-x-4">
-                                <input type="checkbox" id="int_spray" value="Nasal Spray" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('spray')">
-                                <label class="font-bold text-gray-700">Spray</label>
-                            </div>
-                            <div id="extras_spray" class="hidden mt-3 flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 pl-9">
-                                <input type="text" id="prod_spray" placeholder="Product name..." class="p-2 border border-gray-300 rounded text-sm flex-1 input-trigger">
-                                <div class="flex items-center space-x-2 bg-white px-3 py-1 rounded shadow-sm border border-gray-200">
-                                    <span class="text-xs font-bold text-gray-400">Rate:</span>
-                                    <input type="range" id="rate_spray" min="1" max="5" value="3" class="w-24 input-trigger" oninput="this.nextElementSibling.innerText = this.value"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-200">
-                            <div class="flex items-center space-x-4">
-                                <input type="checkbox" id="int_tablets" value="Tablets" class="w-5 h-5 text-emerald-600 rounded input-trigger" onchange="toggleInterventionExtras('tablets')">
-                                <label class="font-bold text-gray-700">Tablets</label>
-                            </div>
-                            <div id="extras_tablets" class="hidden mt-3 flex-col md:flex-row md:items-center space-y-2 md:space-y-0 md:space-x-4 pl-9">
-                                <input type="text" id="prod_tablets" placeholder="Product name..." class="p-2 border border-gray-300 rounded text-sm flex-1 input-trigger">
-                                <div class="flex items-center space-x-2 bg-white px-3 py-1 rounded shadow-sm border border-gray-200">
-                                    <span class="text-xs font-bold text-gray-400">Rate:</span>
-                                    <input type="range" id="rate_tablets" min="1" max="5" value="3" class="w-24 input-trigger" oninput="this.nextElementSibling.innerText = this.value"><span class="font-black text-emerald-600 w-4 inline-block text-center">3</span>
-                                </div>
+                        <div class="flex items-center">
+                            <div id="pollenChart" class="flex-1 flex items-end justify-between h-14 gap-[2px] bg-white/50 p-1.5 rounded border border-emerald-200"></div>
+                            <div class="flex flex-col justify-between h-14 pl-2 text-[9px] text-emerald-700 font-bold whitespace-nowrap">
+                                <span id="chartMax">Max: --</span>
+                                <span id="chartMin">Min: --</span>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- SECTION 3: GeneralSymptoms & SACSI -->
-            <div id="section_symptoms" class="glass-card p-6 border-t-4 border-rose-500">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-rose-800 flex items-center"><span class="text-2xl mr-2">❤️‍🩹</span> General Symptoms & SACSI</h2>
-                    <button type="button" onclick="addSymptomRow()" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold py-2 px-4 rounded-lg text-sm border border-rose-300 transition-colors shadow-sm">+ Add Symptom</button>
-                </div>
-                <div id="symptomsContainer" class="space-y-6"></div>
-            </div>
-            
-            <div class="flex justify-center mt-6 mb-2">
-                 <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest"><i class="fa-solid fa-cloud-arrow-up"></i> Background Optimistic Sync Active</p>
-            </div>
-        </form>
-    </div>
-
-    <template id="symptomRowTemplate">
-        <datalist id="globalSymptomTags"></datalist>
-        <div class="symptom-row sacsi-container bg-slate-100 p-5 rounded-xl border-2 border-slate-300 relative shadow-md">
-            <button type="button" onclick="this.closest('.symptom-row').remove(); queueOptimisticSync();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-2xl font-bold px-2">&times;</button>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 pr-6">
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Symptom Description</label>
-                    <input type="text" class="sym-desc w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-white" placeholder="e.g. Migraine">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tag <span class="text-rose-500">*</span></label>
-                    <input type="text" maxlength="30" list="globalSymptomTags" class="sym-tag w-full p-3 border border-rose-300 rounded-lg bg-white focus:ring-2 focus:ring-rose-500 input-trigger font-bold text-rose-800" placeholder="e.g. Illness" onchange="verifyMDMTag(this)">
-                    <p class="text-[10px] font-bold text-rose-500 mt-1 tag-warning hidden"><i class="fa-solid fa-triangle-exclamation"></i> Unregistered tag. Will be flagged [UNVERIFIED] in pipeline.</p>
-                </div>
-            </div>
-
-            <div class="mb-5 bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                <label class="block text-xs font-bold text-rose-800 uppercase mb-2 flex justify-between items-center">
-                    <span>S.A.C.S.I. Scale (Severity)</span>
-                    <span class="sacsi-val-display bg-rose-100 text-rose-900 px-2 py-1 rounded text-lg font-black border border-rose-200">1 / 10</span>
-                </label>
-                <input type="range" class="sym-sacsi w-full h-3 bg-rose-200 rounded-lg appearance-none cursor-pointer input-trigger" min="1" max="10" value="1" oninput="updateSACSIText(this, 'text-rose-900')">
-                <p class="sacsi-text-anchor text-sm font-normal leading-tight mt-3 text-left transition-all bg-slate-50 p-3 rounded border border-slate-200"></p>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                 <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Duration</label>
-                    <div class="duration-widget flex items-center space-x-2 bg-white p-2 rounded border border-gray-300">
-                        <input type="number" class="sym-dur-hrs w-16 p-2 text-center bg-transparent focus:outline-none input-trigger font-bold" min="0" placeholder="0">
-                        <span class="text-xs font-bold text-gray-500">h</span>
-                        <input type="number" class="sym-dur-mins w-16 p-2 text-center bg-transparent focus:outline-none input-trigger border-l border-gray-300 font-bold" min="0" max="59" placeholder="0">
-                        <span class="text-xs font-bold text-gray-500">m</span>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Detailed Context</label>
-                    <textarea class="sym-comment w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-white" rows="2" placeholder="Cause, modifications, etc..."></textarea>
+                    <input type="hidden" id="pollen_count_level" value="">
+                    <input type="hidden" id="specific_pollens" value="">
+                    <input type="hidden" id="hourly_pollen_data" value="">
                 </div>
             </div>
         </div>
-    </template>
 
-    <script>
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNwr_7iZJuOVdT9u1xHNy9sYEKHjFyJtZ6Q-pDui-Y4qTpLQdi4NT2NiUcoBxwUFDgmA/exec';
-       
-        let isProgrammaticUpdate = false;
-        let currentRecordOriginalPollen = { loc: '', lvl: '', spec: '' };
-        let globalDataCache = JSON.parse(localStorage.getItem('healthspan_cache')) || {};
-        let activeMDMTags = []; 
+        <!-- SECTION 3: Unified Symptom & SACSI Telemetry Engine -->
+        <div id="section_symptoms" class="glass-card p-6 border-t-4 border-rose-500 space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-rose-800 flex items-center"><span class="text-2xl mr-2">❤️‍🩹</span> Unified Symptom Telemetry Log</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Depth, Persistence & Spatial Spread Vector Entry</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button type="button" onclick="addSymptomRow('HAYFEVER')" class="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-bold py-2 px-3 rounded-lg text-xs border border-emerald-300 shadow-sm transition-colors">+ Hayfever Event</button>
+                    <button type="button" onclick="addSymptomRow('GENERAL')" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold py-2 px-3 rounded-lg text-xs border border-rose-300 shadow-sm transition-colors">+ General Symptom</button>
+                </div>
+            </div>
+
+            <div id="symptomsContainer" class="space-y-6"></div>
+        </div>
+
+        <div class="flex justify-center mt-6 mb-2">
+            <p class="text-xs font-bold text-indigo-300 uppercase tracking-widest"><i class="fa-solid fa-cloud-arrow-up"></i> Background Optimistic Sync Active</p>
+        </div>
+    </form>
+</div>
+
+<template id="symptomRowTemplate">
+    <datalist id="globalSymptomTags"></datalist>
+    <div class="symptom-row sacsi-container bg-slate-50 p-5 rounded-xl border-2 border-slate-300 relative shadow-md space-y-4">
+        <button type="button" onclick="this.closest('.symptom-row').remove(); queueOptimisticSync();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-2xl font-bold px-2 z-10">&times;</button>
         
-        let debounceTimer = null;
-        let isSyncing = false;
-        let hasPendingChanges = false;
+        <div class="flex justify-between items-center pr-8 border-b border-slate-200 pb-2">
+            <div class="flex items-center space-x-2">
+                <span class="event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded border">GENERAL</span>
+                <span class="text-xs font-bold text-slate-500 uppercase">Symptom Telemetry Vector</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <span class="text-[10px] font-bold text-slate-400 uppercase">Systemic Burden:</span>
+                <span class="score-display text-xs font-black text-amber-600 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">0 / 100</span>
+            </div>
+        </div>
 
-        function isDateEditable(dateStr) {
-            const active = new Date(dateStr);
-            active.setHours(0, 0, 0, 0);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const diffDays = (today.getTime() - active.getTime()) / (1000 * 3600 * 24);
-            return diffDays >= 0 && diffDays <= 3;
-        }
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <div class="md:col-span-5 space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Descriptor <span class="text-rose-500">*</span></label>
+                    <input type="text" class="sym-desc w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-white text-sm" placeholder="e.g. Sneezing / Cervical Stiffness">
+                </div>
 
-        const SACSI_DEFINITIONS = {
-            1: "<strong>Definition:</strong> Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted.<br><strong>Behavior:</strong> Zero modification to your daily routine.",
-            2: "<strong>Definition:</strong> Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted.<br><strong>Behavior:</strong> Zero modification to your daily routine.",
-            3: "<strong>Definition:</strong> Distracting / Moderate. Introduces a continuous cognitive load. You cannot ignore it, but you can push through.<br><strong>Behavior:</strong> You complain, but do not change training, sleep, or take meds.",
-            4: "<strong>Definition:</strong> Distracting / Moderate. Introduces a continuous cognitive load. You cannot ignore it, but you can push through.<br><strong>Behavior:</strong> You complain, but do not change training, sleep, or take meds.",
-            5: "<strong>Definition:</strong> Systemic Friction. The pain or symptom actively forces a behavioral modification.<br><strong>Behavior:</strong> Take analgesic, apply topical treatment, alter sleep position, or scale back workout.",
-            6: "<strong>Definition:</strong> Systemic Friction. The pain or symptom actively forces a behavioral modification.<br><strong>Behavior:</strong> Take analgesic, apply topical treatment, alter sleep position, or scale back workout.",
-            7: "<strong>Definition:</strong> Severe Impairment. Dictates your day. Actively disrupts baseline physiological functions.<br><strong>Behavior:</strong> Wakes you up, forced to cancel training, concentration severely compromised.",
-            8: "<strong>Definition:</strong> Severe Impairment. Dictates your day. Actively disrupts baseline physiological functions.<br><strong>Behavior:</strong> Wakes you up, forced to cancel training, concentration severely compromised.",
-            9: "<strong>Definition:</strong> Acute / Debilitating. Complete functional breakdown.<br><strong>Behavior:</strong> Bedridden, incapacitated, or actively seeking emergency medical intervention.",
-            10: "<strong>Definition:</strong> Acute / Debilitating. Complete functional breakdown.<br><strong>Behavior:</strong> Bedridden, incapacitated, or actively seeking emergency medical intervention."
-        };
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Likely Cause / Trigger</label>
+                    <input type="text" class="sym-cause w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-white text-sm" placeholder="e.g. Pollen Exposure / Kinetic Load">
+                </div>
 
-        function updateSACSIText(sliderElement, colorClass) {
-            const val = parseInt(sliderElement.value);
-            const container = sliderElement.closest('.sacsi-container');
-            const displayBox = container.querySelector('.sacsi-val-display');
-            const textBox = container.querySelector('.sacsi-text-anchor');
-            
-            displayBox.innerText = val + ' / 10';
-            textBox.innerHTML = SACSI_DEFINITIONS[val];
-            textBox.className = `sacsi-text-anchor text-sm font-normal leading-tight mt-3 text-left transition-all bg-white p-3 rounded shadow-sm border border-gray-200 ${colorClass || 'text-gray-800'}`;
-        }
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tag <span class="text-rose-500">*</span></label>
+                        <input type="text" maxlength="30" list="globalSymptomTags" class="sym-tag w-full p-2 border border-rose-300 rounded-lg bg-white focus:ring-2 focus:ring-rose-500 input-trigger font-bold text-rose-800 text-xs" placeholder="e.g. Illness" onchange="verifyMDMTag(this)">
+                        <p class="text-[9px] font-bold text-rose-500 mt-0.5 tag-warning hidden"><i class="fa-solid fa-triangle-exclamation"></i> Unverified</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Treatments Used</label>
+                        <input type="text" class="sym-treatments w-full p-2 border border-gray-300 rounded-lg bg-white text-xs input-trigger" placeholder="e.g. Eyedrops (4/5)">
+                    </div>
+                </div>
+            </div>
 
-        function verifyMDMTag(inputElement) {
-            const val = inputElement.value.trim().toLowerCase();
-            const warning = inputElement.nextElementSibling;
-            if (!val) { warning.classList.add('hidden'); return; }
-            
-            if (activeMDMTags.length > 0 && !activeMDMTags.includes(val)) {
-                warning.classList.remove('hidden');
-                inputElement.classList.add('border-red-500', 'bg-red-50');
-            } else {
-                warning.classList.add('hidden');
-                inputElement.classList.remove('border-red-500', 'bg-red-50');
-            }
-        }
-
-        function parsePollenForUI(specificsString) {
-            let tVal = '--', gVal = '--', wVal = '--';
-            if(specificsString && specificsString.includes('|')) {
-                try {
-                    const parts = specificsString.split(' | ');
-                    tVal = parts[0].split(': ')[1] || '--';
-                    gVal = parts[1].split(': ')[1] || '--';
-                    wVal = parts[2].split(': ')[1] || '--';
-                } catch(e) {}
-            }
-            return `<span title="Tree Pollen">🌳 ${tVal}</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 ${gVal}</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 ${wVal}</span>`;
-        }
-
-        function hasValidPollenValues(hourly) {
-            if (!hourly) return false;
-            const keys = ['alder_pollen', 'birch_pollen', 'grass_pollen', 'mugwort_pollen', 'ragweed_pollen'];
-            return keys.some(key => Array.isArray(hourly[key]) && hourly[key].some(val => val !== null && val !== undefined));
-        }
-
-        function toggleInterventionExtras(id) {
-            const cb = document.getElementById('int_' + id);
-            const extras = document.getElementById('extras_' + id);
-            if (cb.checked) {
-                extras.classList.remove('hidden');
-                extras.classList.add('flex');
-            } else {
-                extras.classList.remove('flex');
-                extras.classList.add('hidden');
-            }
-        }
-
-        function parseToMinutes(hrs, mins) { return (parseInt(hrs) || 0) * 60 + (parseInt(mins) || 0); }
-
-        function populateDurationWidget(totalMins, hrsId, minsId) {
-            if (!totalMins) { document.getElementById(hrsId).value = ''; document.getElementById(minsId).value = ''; return; }
-            let h = Math.floor(totalMins / 60); let m = totalMins % 60;
-            document.getElementById(hrsId).value = h > 0 ? h : ''; document.getElementById(minsId).value = m > 0 ? m : '';
-        }
-
-        function populateRowDurationWidget(row, totalHrsDecimal) {
-            if (!totalHrsDecimal) return;
-            let totalMins = Math.round(parseFloat(totalHrsDecimal) * 60);
-            row.querySelector('.sym-dur-hrs').value = Math.floor(totalMins / 60) || '';
-            row.querySelector('.sym-dur-mins').value = (totalMins % 60) || '';
-        }
-
-        async function getCoordinates(locationName) {
-            const cleanName = locationName.trim();
-            if (!cleanName) throw new Error("No location provided");
-            const cacheKey = 'geo_' + cleanName.toLowerCase();
-            const cached = localStorage.getItem(cacheKey);
-            if (cached) return JSON.parse(cached);
-
-            const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanName)}&count=1&language=en&format=json`);
-            if (!res.ok) throw new Error("Geocoding service unavailable");
-            const data = await res.json();
-            if (!data.results || data.results.length === 0) throw new Error("Location not found");
-            const coords = { lat: data.results[0].latitude, lon: data.results[0].longitude };
-            localStorage.setItem(cacheKey, JSON.stringify(coords)); 
-            return coords;
-        }
-
-        async function fetchLivePollenData(isAuto = false) {
-            const locationName = document.getElementById('postcode_prefix').value;
-            const helperText = document.getElementById('locationHelperText');
-            const activeDateStr = document.getElementById('record_date').value;
-            const isEditable = isDateEditable(activeDateStr);
-            
-            if (!locationName) { document.getElementById('ui_overall_pollen').innerText = "Enter Location First"; return; }
-
-            document.getElementById('pollenLoader').classList.remove('hidden');
-            if(!isAuto) helperText.innerText = "Resolving location...";
-            helperText.className = "text-xs text-emerald-600 mt-2";
-            document.getElementById('pollenChartContainer').classList.add('hidden');
-
-            try {
-                const { lat, lon } = await getCoordinates(locationName);
-                if (lat < 30 || lat > 72 || lon < -25 || lon > 45) throw new Error("Pollen model is restricted to European regions.");
-
-                const isoDate = new Date(activeDateStr).toISOString().split('T')[0];
-                const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&start_date=${isoDate}&end_date=${isoDate}&timezone=Europe%2FLondon`;
+            <!-- INTEGRATED SPATIAL GRID: TOP-DOWN SLIDER + RADAR + ORANGE BALL -->
+            <div class="md:col-span-7 bg-white p-3.5 rounded-xl border border-slate-200 grid grid-cols-12 gap-3 items-center">
                 
-                const response = await fetch(url);
-                const data = await response.json();
-                
-                if (!data.hourly || !hasValidPollenValues(data.hourly)) throw new Error("No data currently available for this location");
-                
-                let maxTree = 0, maxGrass = 0, maxWeed = 0;
-                let hourlyTotals = [];
-                let maxHourlyTotal = 1;
+                <!-- TOP-DOWN SACSI SLIDER -->
+                <div class="col-span-3 flex flex-col items-center justify-center bg-slate-100 p-2 rounded-lg border border-slate-200">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase mb-1">Top = 0</span>
+                    <div class="vertical-slider-container">
+                        <input type="range" min="0" max="10" value="0" class="sym-sacsi vertical-range-topdown input-trigger" oninput="handleSacsiRowInput(this)">
+                    </div>
+                    <span class="text-[9px] font-bold text-rose-600 uppercase mt-1">Bot = 10</span>
+                </div>
 
-                for (let i = 0; i < 24; i++) {
-                    let tree = (data.hourly.alder_pollen[i] || 0) + (data.hourly.birch_pollen[i] || 0);
-                    let grass = (data.hourly.grass_pollen[i] || 0);
-                    let weed = (data.hourly.mugwort_pollen[i] || 0) + (data.hourly.ragweed_pollen[i] || 0);
-                    if (tree > maxTree) maxTree = tree; if (grass > maxGrass) maxGrass = grass; if (weed > maxWeed) maxWeed = weed;
-                    let hTotal = tree + grass + weed; hourlyTotals.push(hTotal);
-                    if (hTotal > maxHourlyTotal) maxHourlyTotal = hTotal;
-                }
+                <!-- SECTOR RADAR & ORANGE BALL -->
+                <div class="col-span-9 flex flex-col items-center justify-between h-full space-y-2">
+                    <div class="flex justify-between items-center w-full">
+                        <span class="sacsi-val-display bg-rose-100 text-rose-900 px-2 py-0.5 rounded font-black text-xs border border-rose-200">SACSI: 0/10</span>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-[9px] font-bold uppercase text-slate-400">Burden:</span>
+                            <div class="orange-ball-element w-3 h-3 rounded-full"></div>
+                        </div>
+                    </div>
 
-                const getLevel = (val, modThresh, highThresh) => val >= highThresh ? "High" : val >= modThresh ? "Moderate" : "Low";
-                const treeLvl = getLevel(maxTree, 15, 90), grassLvl = getLevel(maxGrass, 10, 50), weedLvl = getLevel(maxWeed, 10, 50);
-                
-                const levels = [treeLvl, grassLvl, weedLvl];
-                let overall = levels.includes("High") ? "High" : levels.includes("Moderate") ? "Moderate" : "Low";
-                const specificsStr = `Tree: ${treeLvl} | Grass: ${grassLvl} | Weed: ${weedLvl}`;
+                    <div class="relative flex justify-center items-center w-full overflow-hidden">
+                        <svg class="radar-svg select-none" width="230" height="200" viewBox="0 0 320 280"></svg>
+                    </div>
+                </div>
 
-                document.getElementById('pollen_count_level').value = overall;
-                document.getElementById('specific_pollens').value = specificsStr;
-                document.getElementById('hourly_pollen_data').value = JSON.stringify(hourlyTotals);
-                
-                document.getElementById('ui_overall_pollen').innerText = `Overall: ${overall}`;
-                document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(specificsStr);
-                
-                const minHourlyTotal = Math.min(...hourlyTotals);
-                document.getElementById('chartMax').innerText = `Max: ${Math.round(maxHourlyTotal)}`;
-                document.getElementById('chartMin').innerText = `Min: ${Math.round(minHourlyTotal)}`;
+            </div>
+        </div>
 
-                const chart = document.getElementById('pollenChart');
-                chart.innerHTML = '';
-                hourlyTotals.forEach((total, i) => {
-                    let color = total >= 50 ? '#f87171' : total >= 10 ? '#fbbf24' : '#34d399';
-                    let pct = Math.max(5, (total / Math.max(maxHourlyTotal, 1)) * 100);
-                    chart.innerHTML += `<div class="flex-1 rounded-t-sm transition-all hover:opacity-75" style="background-color: ${color}; height: ${pct}%; min-height: 2px;"></div>`;
-                });
-                document.getElementById('pollenChartContainer').classList.remove('hidden');
-                
-                helperText.innerText = isEditable ? "Type any European city to update coordinates." : "Historical view. Location changes will not be saved.";
+        <div class="bg-white p-3 rounded-lg border border-slate-200">
+            <p class="sacsi-text-anchor text-xs italic text-slate-600">Baseline / Asymptomatic. Zero impairment, normal physiological function.</p>
+        </div>
 
-                if (isEditable && !isAuto) queueOptimisticSync();
+        <!-- THRESHOLD PERSISTENCE DRAWER (SACSI > 0) -->
+        <div class="threshold-drawer space-y-3">
+            <div class="bg-emerald-50/60 p-3 rounded-lg border border-emerald-200">
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1.5">Persistence (Duration Band)</label>
+                <div class="grid grid-cols-5 gap-1.5 ordinal-bands">
+                    <button type="button" onclick="setRowPersistence(this, 1)" class="persistence-btn p-1.5 rounded-lg bg-emerald-600 text-white text-center border border-emerald-500 text-xs shadow-sm transition-all" data-val="1">
+                        <div class="font-bold text-[10px]">&lt;30m</div><div class="text-[7px] text-emerald-200">Transient</div>
+                    </button>
+                    <button type="button" onclick="setRowPersistence(this, 2)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="2">
+                        <div class="font-bold text-emerald-700 text-[10px]">30m-2h</div><div class="text-[7px] text-slate-400">Episodic</div>
+                    </button>
+                    <button type="button" onclick="setRowPersistence(this, 3)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="3">
+                        <div class="font-bold text-emerald-700 text-[10px]">2h-6h</div><div class="text-[7px] text-slate-400">Extended</div>
+                    </button>
+                    <button type="button" onclick="setRowPersistence(this, 4)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="4">
+                        <div class="font-bold text-emerald-700 text-[10px]">6h-16h</div><div class="text-[7px] text-slate-400">Persistent</div>
+                    </button>
+                    <button type="button" onclick="setRowPersistence(this, 5)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="5">
+                        <div class="font-bold text-emerald-700 text-[10px]">&gt;16h</div><div class="text-[7px] text-slate-400">Diurnal</div>
+                    </button>
+                </div>
+            </div>
 
-            } catch (error) {
-                document.getElementById('ui_overall_pollen').innerText = "Data Error";
-                helperText.innerText = error.message;
-                helperText.className = "text-xs text-red-500 font-bold mt-2";
-                if(!isAuto) {
-                    ['pollen_count_level', 'specific_pollens', 'hourly_pollen_data'].forEach(id => document.getElementById(id).value = '');
-                    document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI('');
-                    document.getElementById('pollenChartContainer').classList.add('hidden');
-                }
-            } finally { document.getElementById('pollenLoader').classList.add('hidden'); }
+            <div>
+                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Context Notes & Comments</label>
+                <textarea class="sym-comment w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-white text-xs" rows="1.5" placeholder="Context, modifications, or extended notes..."></textarea>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNwr_7iZJuOVdT9u1xHNy9sYEKHjFyJtZ6Q-pDui-Y4qTpLQdi4NT2NiUcoBxwUFDgmA/exec';
+let isProgrammaticUpdate = false;
+let currentRecordOriginalPollen = { loc: '', lvl: '', spec: '' };
+let globalDataCache = JSON.parse(localStorage.getItem('healthspan_cache')) || {};
+let activeMDMTags = [];
+let debounceTimer = null;
+let isSyncing = false;
+let hasPendingChanges = false;
+
+const SACSI_DEFINITIONS = {
+    0: "Baseline / Asymptomatic. Zero impairment, normal physiological function.",
+    1: "Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted. Zero routine modification.",
+    2: "Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted. Zero routine modification.",
+    3: "Distracting / Moderate. Continuous cognitive load. You cannot ignore it, but you push through.",
+    4: "Distracting / Moderate. Continuous cognitive load. You cannot ignore it, but you push through.",
+    5: "Systemic Friction. Forces active behavioral modification: take analgesic or scale back workout.",
+    6: "Systemic Friction. Forces active behavioral modification: take analgesic or scale back workout.",
+    7: "Severe Impairment. Dictates your day. Disrupts physiological baselines: wakes you, cancels training.",
+    8: "Severe Impairment. Dictates your day. Disrupts physiological baselines: wakes you, cancels training.",
+    9: "Acute / Debilitating. Complete functional breakdown. Bedridden, incapacitated.",
+    10: "Acute / Debilitating. Complete functional breakdown. Bedridden, incapacitated."
+};
+
+const AXES_NAMES = ["Cognitive", "Neurological", "Motor", "Autonomic", "Gastrointestinal", "Affective"];
+const AXIS_ICONS = ["🧠", "⚡", "🦾", "💧", "🍽️", "🎭"];
+const RADAR_CENTER = 160;
+const RADAR_RADIUS = 75;
+
+function isDateEditable(dateStr) {
+    const active = new Date(dateStr); active.setHours(0, 0, 0, 0);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diffDays = (today.getTime() - active.getTime()) / (1000 * 3600 * 24);
+    return diffDays >= 0 && diffDays <= 3;
+}
+
+function verifyMDMTag(inputElement) {
+    const val = inputElement.value.trim().toLowerCase();
+    const warning = inputElement.nextElementSibling;
+    if (!val) { warning.classList.add('hidden'); return; }
+    if (activeMDMTags.length > 0 && !activeMDMTags.includes(val)) {
+        warning.classList.remove('hidden');
+        inputElement.classList.add('border-red-500', 'bg-red-50');
+    } else {
+        warning.classList.add('hidden');
+        inputElement.classList.remove('border-red-500', 'bg-red-50');
+    }
+}
+
+function parsePollenForUI(specificsString) {
+    let tVal = '--', gVal = '--', wVal = '--';
+    if(specificsString && specificsString.includes('|')) {
+        try {
+            const parts = specificsString.split(' | ');
+            tVal = parts[0].split(': ')[1] || '--';
+            gVal = parts[1].split(': ')[1] || '--';
+            wVal = parts[2].split(': ')[1] || '--';
+        } catch(e) {}
+    }
+    return `<span title="Tree Pollen">🌲 ${tVal}</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 ${gVal}</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 ${wVal}</span>`;
+}
+
+function hasValidPollenValues(hourly) {
+    if (!hourly) return false;
+    const keys = ['alder_pollen', 'birch_pollen', 'grass_pollen', 'mugwort_pollen', 'ragweed_pollen'];
+    return keys.some(key => Array.isArray(hourly[key]) && hourly[key].some(val => val !== null && val !== undefined));
+}
+
+async function getCoordinates(locationName) {
+    const cleanName = locationName.trim();
+    if (!cleanName) throw new Error("No location provided");
+    const cacheKey = 'geo_' + cleanName.toLowerCase();
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) return JSON.parse(cached);
+
+    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanName)}&count=1&language=en&format=json`);
+    if (!res.ok) throw new Error("Geocoding service unavailable");
+    const data = await res.json();
+    if (!data.results || data.results.length === 0) throw new Error("Location not found");
+    const coords = { lat: data.results[0].latitude, lon: data.results[0].longitude };
+    localStorage.setItem(cacheKey, JSON.stringify(coords));
+    return coords;
+}
+
+async function fetchLivePollenData(isAuto = false) {
+    const locationName = document.getElementById('postcode_prefix').value;
+    const helperText = document.getElementById('locationHelperText');
+    const activeDateStr = document.getElementById('record_date').value;
+    const isEditable = isDateEditable(activeDateStr);
+    if (!locationName) { document.getElementById('ui_overall_pollen').innerText = "Enter Location First"; return; }
+
+    document.getElementById('pollenLoader').classList.remove('hidden');
+    if(!isAuto) helperText.innerText = "Resolving location...";
+    helperText.className = "text-xs text-emerald-600 mt-2";
+    document.getElementById('pollenChartContainer').classList.add('hidden');
+
+    try {
+        const { lat, lon } = await getCoordinates(locationName);
+        if (lat < 30 || lat > 72 || lon < -25 || lon > 45) throw new Error("Pollen model is restricted to European regions.");
+
+        const isoDate = new Date(activeDateStr).toISOString().split('T')[0];
+        const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&start_date=${isoDate}&end_date=${isoDate}&timezone=Europe%2FLondon`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (!data.hourly || !hasValidPollenValues(data.hourly)) throw new Error("No data currently available for this location");
+        let maxTree = 0, maxGrass = 0, maxWeed = 0;
+        let hourlyTotals = [];
+        let maxHourlyTotal = 1;
+
+        for (let i = 0; i < 24; i++) {
+            let tree = (data.hourly.alder_pollen[i] || 0) + (data.hourly.birch_pollen[i] || 0);
+            let grass = (data.hourly.grass_pollen[i] || 0);
+            let weed = (data.hourly.mugwort_pollen[i] || 0) + (data.hourly.ragweed_pollen[i] || 0);
+            if (tree > maxTree) maxTree = tree; if (grass > maxGrass) maxGrass = grass; if (weed > maxWeed) maxWeed = weed;
+            let hTotal = tree + grass + weed; hourlyTotals.push(hTotal);
+            if (hTotal > maxHourlyTotal) maxHourlyTotal = hTotal;
         }
 
-        function queueOptimisticSync() {
-             if (isProgrammaticUpdate) return;
-             
-             saveStateToLocalCache();
-             
-             hasPendingChanges = true;
-             clearTimeout(debounceTimer);
-             
-             const toast = document.getElementById('syncToast');
-             const toastIcon = document.getElementById('syncToastIcon');
-             const toastText = document.getElementById('syncToastText');
-             
-             toastIcon.className = "mr-2 loader !border-gray-500 !border-t-white !w-4 !h-4";
-             toastText.innerText = "Local cache updated. Pending sync...";
-             toast.classList.remove('opacity-0');
+        const getLevel = (val, modThresh, highThresh) => val >= highThresh ? "High" : val >= modThresh ? "Moderate" : "Low";
+        const treeLvl = getLevel(maxTree, 15, 90), grassLvl = getLevel(maxGrass, 10, 50), weedLvl = getLevel(maxWeed, 10, 50);
+        const levels = [treeLvl, grassLvl, weedLvl];
+        let overall = levels.includes("High") ? "High" : levels.includes("Moderate") ? "Moderate" : "Low";
+        const specificsStr = `Tree: ${treeLvl} | Grass: ${grassLvl} | Weed: ${weedLvl}`;
 
-             debounceTimer = setTimeout(() => {
-                 executeNetworkSync();
-             }, 2000); 
-        }
+        document.getElementById('pollen_count_level').value = overall;
+        document.getElementById('specific_pollens').value = specificsStr;
+        document.getElementById('hourly_pollen_data').value = JSON.stringify(hourlyTotals);
+        document.getElementById('ui_overall_pollen').innerText = `Overall: ${overall}`;
+        document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(specificsStr);
+        const minHourlyTotal = Math.min(...hourlyTotals);
+        document.getElementById('chartMax').innerText = `Max: ${Math.round(maxHourlyTotal)}`;
+        document.getElementById('chartMin').innerText = `Min: ${Math.round(minHourlyTotal)}`;
 
-        function saveStateToLocalCache() {
-            let currentDateStr = document.getElementById('record_date').value;
-            let targetDateString = new Date(currentDateStr).toDateString();
-            let isEditable = isDateEditable(currentDateStr);
-            
-            let selectedSymptoms = [];
-            document.querySelectorAll('.symptom-check:checked').forEach(cb => selectedSymptoms.push(cb.value));
-            
-            let hfSacsi = document.getElementById('hayfever_sacsi').value;
-            let hayfeverSymptomsFinal = selectedSymptoms.join(" ,");
-            let selectedInterventions = [];
-            document.querySelectorAll('input[id^="int_"]:checked').forEach(cb => {
-                let idSuffix = cb.id.split('_')[1];
-                let rating = document.getElementById('rate_' + idSuffix).value;
-                let prod = document.getElementById('prod_' + idSuffix).value;
-                let prodStr = prod ? ` [${prod}]` : "";
-                selectedInterventions.push(`${cb.value}${prodStr} (${rating}/5)`);
-            });
+        const chart = document.getElementById('pollenChart');
+        chart.innerHTML = '';
+        hourlyTotals.forEach((total) => {
+            let color = total >= 50 ? '#f87171' : total >= 10 ? '#fbbf24' : '#34d399';
+            let pct = Math.max(5, (total / Math.max(maxHourlyTotal, 1)) * 100);
+            chart.innerHTML += `<div class="flex-1 rounded-t-sm transition-all hover:opacity-75" style="background-color: ${color}; height: ${pct}%; min-height: 2px;"></div>`;
+        });
+        document.getElementById('pollenChartContainer').classList.remove('hidden');
+        helperText.innerText = isEditable ? "Type any European city to update coordinates." : "Historical view. Location changes will not be saved.";
 
-            let generalSymptomsArray = [];
-            document.querySelectorAll('.symptom-row').forEach(row => {
-                let desc = row.querySelector('.sym-desc').value.trim();
-                let tag = row.querySelector('.sym-tag').value.trim();
-                let comment = row.querySelector('.sym-comment').value.trim();
-                let sacsi = row.querySelector('.sym-sacsi').value;
-                
-                let h = parseInt(row.querySelector('.sym-dur-hrs').value) || 0;
-                let m = parseInt(row.querySelector('.sym-dur-mins').value) || 0;
-                let totalHoursDecimal = h + (m / 60);
+        if (isEditable && !isAuto) queueOptimisticSync();
 
-                if (tag && activeMDMTags.length > 0 && !activeMDMTags.includes(tag.toLowerCase())) {
-                    if (!tag.startsWith('[UNVERIFIED]')) tag = '[UNVERIFIED] ' + tag;
-                }
-
-                if (desc || tag) {
-                    generalSymptomsArray.push({
-                        description: desc,
-                        cause: "", 
-                        sacsi_severity: sacsi, 
-                        duration: totalHoursDecimal > 0 ? totalHoursDecimal.toFixed(2) : "",
-                        comment: comment,
-                        theme: tag 
-                    });
-                }
-            });
-            
-            let locToSave = document.getElementById('postcode_prefix').value;
-            let lvlToSave = document.getElementById('pollen_count_level').value;
-            let specToSave = document.getElementById('specific_pollens').value;
-
-            if (!isEditable) {
-                locToSave = currentRecordOriginalPollen.loc;
-                lvlToSave = currentRecordOriginalPollen.lvl;
-                specToSave = currentRecordOriginalPollen.spec;
-            }
-
-            if (!globalDataCache[targetDateString]) globalDataCache[targetDateString] = { metrics: [], hayfever: new Array(11).fill(""), symptoms: [] };
-            if (!globalDataCache[targetDateString].metrics) globalDataCache[targetDateString].metrics = [];
-            if (!globalDataCache[targetDateString].hayfever) globalDataCache[targetDateString].hayfever = new Array(11).fill("");
-            
-            globalDataCache[targetDateString].metrics[6] = document.getElementById('ambient_temp_celsius').value;
-            globalDataCache[targetDateString].metrics[11] = null;
-            globalDataCache[targetDateString].metrics[12] = document.getElementById('golf_focus').value;
-            globalDataCache[targetDateString].metrics[13] = document.getElementById('daily_feedback').value;
-            globalDataCache[targetDateString].metrics[15] = document.getElementById('sleep_debt_manual').value;
-            
-            globalDataCache[targetDateString].hayfever[1] = locToSave;
-            globalDataCache[targetDateString].hayfever[2] = lvlToSave;
-            globalDataCache[targetDateString].hayfever[3] = hayfeverSymptomsFinal;
-            globalDataCache[targetDateString].hayfever[4] = parseToMinutes(document.getElementById('hayfever_dur_hrs').value, document.getElementById('hayfever_dur_mins').value);
-            globalDataCache[targetDateString].hayfever[5] = selectedInterventions.join(", ");
-            globalDataCache[targetDateString].hayfever[7] = specToSave;
-            globalDataCache[targetDateString].hayfever[8] = document.getElementById('hourly_pollen_data').value;
-            globalDataCache[targetDateString].hayfever[10] = hfSacsi; 
-
-            // ALIGNED CACHE VECTOR: Index 3 = SACSI (Col D), Index 4 = Duration (Col E)
-            globalDataCache[targetDateString].symptoms = generalSymptomsArray.map(sym => [
-                targetDateString, 
-                sym.description, 
-                sym.cause, 
-                sym.sacsi_severity, // Index 3 -> Column D
-                sym.duration,       // Index 4 -> Column E
-                new Date(), 
-                sym.comment, 
-                sym.theme
-            ]);
-            
-            localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
-            updateGlobalTagAutofill();
-        }
-
-        function executeNetworkSync() {
-            if (!hasPendingChanges || isSyncing) return Promise.resolve();
-            
-            isSyncing = true;
-            const toastIcon = document.getElementById('syncToastIcon');
-            const toastText = document.getElementById('syncToastText');
-            
-            toastIcon.className = "mr-2 loader !border-emerald-400 !border-t-white !w-4 !h-4";
-            toastText.innerText = "Transmitting...";
-
-            let currentDateStr = document.getElementById('record_date').value;
-            let targetDateString = new Date(currentDateStr).toDateString();
-            
-            const cachedDay = globalDataCache[targetDateString];
-            if (!cachedDay) {
-                isSyncing = false;
-                return Promise.resolve();
-            }
-
-            let generalSymptomsArray = [];
-            if(cachedDay.symptoms) {
-                generalSymptomsArray = cachedDay.symptoms.map(sym => ({
-                    description: sym[1],
-                    cause: sym[2],
-                    sacsi_severity: sym[3], // Index 3 -> SACSI (Col D)
-                    duration: sym[4],        // Index 4 -> Duration (Col E)
-                    comment: sym[6],
-                    tag: sym[7]
-                }));
-            }
-
-            const payload = {
-                record_date: currentDateStr,
-                ambient_temp_celsius: cachedDay.metrics[6] || "",
-                sleep_debt_manual: cachedDay.metrics[15] || "",
-                daily_feedback: cachedDay.metrics[13] || "",
-                golf_focus: cachedDay.metrics[12] || "",
-                hayfever_symptoms: cachedDay.hayfever[3] || "",
-                hayfever_sacsi_severity: cachedDay.hayfever[10] || "1",
-                hayfever_duration_mins: cachedDay.hayfever[4] || 0,
-                postcode_prefix: cachedDay.hayfever[1] || "",
-                pollen_count_level: cachedDay.hayfever[2] || "",
-                specific_pollens: cachedDay.hayfever[7] || "",
-                hourly_pollen_data: cachedDay.hayfever[8] || "",
-                allergy_interventions_with_success: cachedDay.hayfever[5] || "",
-                general_symptoms_array: generalSymptomsArray
-            };
-            
-            return fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
-            .then(res => res.json())
-            .then(data => {
-                if(data.status === "success") {
-                    hasPendingChanges = false;
-                    toastIcon.className = "mr-2 text-emerald-400";
-                    toastIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
-                    toastText.innerText = "Matrix Synchronized";
-                    setTimeout(() => { if(!hasPendingChanges) document.getElementById('syncToast').classList.add('opacity-0'); }, 2500);
-                } else throw new Error(data.message);
-            })
-            .catch((error) => {
-                toastIcon.className = "mr-2 text-red-500";
-                toastIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
-                toastText.innerText = "Schema Rejection: Check Apps Script";
-                hasPendingChanges = false; 
-                console.error("ETL Pipeline Failure:", error);
-            })
-            .finally(() => {
-                isSyncing = false;
-            });
-        }
-
-        async function handleDateSwitch(daysOffset, isDirectInput = false) {
-            let dateInput = document.getElementById('record_date');
-            
-            if (hasPendingChanges) {
-                clearTimeout(debounceTimer);
-                document.getElementById('ui-lock-overlay').style.display = 'flex';
-                try {
-                    await executeNetworkSync();
-                } catch(e) {
-                    console.error("Failed to sync before date switch", e);
-                }
-                document.getElementById('ui-lock-overlay').style.display = 'none';
-            }
-
-            if (!isDirectInput) {
-                let currentDate = new Date(dateInput.value);
-                currentDate.setDate(currentDate.getDate() + daysOffset);
-                dateInput.valueAsDate = currentDate;
-            }
-            renderDateFromCache(dateInput.value);
-        }
-
-        function addSymptomRow(desc = '', cause = '', durDecimal = '', comment = '', tag = '', sacsi = '1') {
-            const container = document.getElementById('symptomsContainer');
-            const template = document.getElementById('symptomRowTemplate');
-            const clone = template.content.cloneNode(true);
-            
-            clone.querySelector('.sym-desc').value = desc;
-            clone.querySelector('.sym-comment').value = cause || comment; 
-            clone.querySelector('.sym-tag').value = tag;
-            clone.querySelector('.sym-sacsi').value = sacsi;
-            
-            const slider = clone.querySelector('.sym-sacsi');
-            updateSACSIText(slider, 'text-rose-900');
-            
-            populateRowDurationWidget(clone, durDecimal);
-            
-            clone.querySelectorAll('.input-trigger').forEach(input => {
-                input.addEventListener('change', queueOptimisticSync);
-                input.addEventListener('input', queueOptimisticSync);
-            });
-            
-            container.appendChild(clone);
-            if(!isProgrammaticUpdate) queueOptimisticSync();
-        }
-
-        function updateGlobalTagAutofill() {
-            const tagsSet = new Set();
-            for (let dateKey in globalDataCache) {
-                if (globalDataCache[dateKey].symptoms) {
-                    globalDataCache[dateKey].symptoms.forEach(sym => {
-                        if (sym[7]) tagsSet.add(sym[7].trim().toLowerCase()); 
-                    });
-                }
-            }
-            activeMDMTags = Array.from(tagsSet);
-            const datalist = document.getElementById('globalSymptomTags');
-            if (datalist) {
-                datalist.innerHTML = '';
-                activeMDMTags.forEach(tag => {
-                    let option = document.createElement('option');
-                    option.value = tag.charAt(0).toUpperCase() + tag.slice(1);
-                    datalist.appendChild(option);
-                });
-            }
-        }
-
-        function renderDateFromCache(dateStr) {
-            isProgrammaticUpdate = true;
-            let targetDateString = new Date(dateStr).toDateString();
-            
-            document.getElementById('ambient_temp_celsius').value = '';
-            document.getElementById('sleep_debt_manual').value = '';
-            document.getElementById('daily_feedback').value = '';
-            document.querySelectorAll('.symptom-check').forEach(cb => cb.checked = false);
-            document.querySelectorAll('input[id^="int_"]').forEach(cb => { cb.checked = false; toggleInterventionExtras(cb.id.split('_')[1]); });
-            document.querySelectorAll('input[id^="prod_"]').forEach(inp => inp.value = '');
-            document.querySelectorAll('input[id^="rate_"]').forEach(inp => { inp.value = 3; inp.nextElementSibling.innerText = '3'; });
-            document.getElementById('hayfever_dur_hrs').value = '';
-            document.getElementById('hayfever_dur_mins').value = '';
-            document.getElementById('postcode_prefix').value = '';
-            document.getElementById('pollen_count_level').value = '';
-            document.getElementById('specific_pollens').value = '';
-            document.getElementById('hourly_pollen_data').value = '';
-            
-            document.getElementById('hayfever_sacsi').value = 1;
-            updateSACSIText(document.getElementById('hayfever_sacsi'), 'text-emerald-800');
-
-            document.getElementById('ui_overall_pollen').innerText = 'Awaiting Data...';
+    } catch (error) {
+        document.getElementById('ui_overall_pollen').innerText = "Data Error";
+        helperText.innerText = error.message;
+        helperText.className = "text-xs text-red-500 font-bold mt-2";
+        if(!isAuto) {
+            ['pollen_count_level', 'specific_pollens', 'hourly_pollen_data'].forEach(id => document.getElementById(id).value = '');
             document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI('');
             document.getElementById('pollenChartContainer').classList.add('hidden');
-            document.getElementById('symptomsContainer').innerHTML = '';
-            document.getElementById('golf_focus').value = '';
+        }
+    } finally { document.getElementById('pollenLoader').classList.add('hidden'); }
+}
 
-            let dayData = globalDataCache[targetDateString];
-            
-            if (dayData) {
-                if(dayData.metrics) {
-                    document.getElementById('ambient_temp_celsius').value = dayData.metrics[6] || '';
-                    document.getElementById('golf_focus').value = dayData.metrics[12] || '';
-                    document.getElementById('daily_feedback').value = dayData.metrics[13] || '';
-                    document.getElementById('sleep_debt_manual').value = dayData.metrics[15] || '';
-                }
-                
-                if(dayData.hayfever) {
-                    let locationName = dayData.hayfever[1] || '';
-                    if (!locationName && targetDateString === new Date().toDateString()) {
-                        let sortedDates = Object.keys(globalDataCache).sort((a, b) => new Date(b) - new Date(a));
-                        for (let d of sortedDates) { if (globalDataCache[d].hayfever && globalDataCache[d].hayfever[1]) { locationName = globalDataCache[d].hayfever[1]; break; } }
-                    }
-                    document.getElementById('postcode_prefix').value = locationName;
-                    
-                    document.getElementById('pollen_count_level').value = dayData.hayfever[2] || '';
-                    document.getElementById('specific_pollens').value = dayData.hayfever[7] || '';
-                    document.getElementById('hourly_pollen_data').value = dayData.hayfever[8] || '';
-                    
-                    document.getElementById('ui_overall_pollen').innerText = `Overall: ${dayData.hayfever[2] || 'No Data'}`;
-                    document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(dayData.hayfever[7]);
+function handleSacsiRowInput(slider) {
+    const row = slider.closest('.symptom-row');
+    const depth = parseInt(slider.value);
+    row.dataset.sacsi_depth = depth;
 
-                    if (dayData.hayfever[8]) {
-                        try {
-                            const hourlyTotals = JSON.parse(dayData.hayfever[8]);
-                            const chart = document.getElementById('pollenChart');
-                            chart.innerHTML = '';
-                            const maxHourlyTotal = Math.max(...hourlyTotals, 1);
-                            document.getElementById('chartMax').innerText = `Max: ${Math.round(maxHourlyTotal)}`;
-                            document.getElementById('chartMin').innerText = `Min: ${Math.round(Math.min(...hourlyTotals))}`;
-                            hourlyTotals.forEach((total) => {
-                                let color = total >= 50 ? '#f87171' : total >= 10 ? '#fbbf24' : '#34d399';
-                                let pct = Math.max(5, (total / maxHourlyTotal) * 100);
-                                chart.innerHTML += `<div class="flex-1 rounded-t-sm" style="background-color: ${color}; height: ${pct}%; min-height: 2px;"></div>`;
-                            });
-                            document.getElementById('pollenChartContainer').classList.remove('hidden');
-                        } catch(e) {}
-                    }
+    row.querySelector('.sacsi-val-display').innerText = `SACSI: ${depth}/10`;
+    row.querySelector('.sacsi-text-anchor').innerText = SACSI_DEFINITIONS[depth];
 
-                    let symptomsStr = dayData.hayfever[3] || "";
-                    document.getElementById('hayfever_sacsi').value = dayData.hayfever[10] || 1;
-                    updateSACSIText(document.getElementById('hayfever_sacsi'), 'text-emerald-800');
+    const drawer = row.querySelector('.threshold-drawer');
+    if (depth > 0) {
+        drawer.classList.add('open');
+    } else {
+        drawer.classList.remove('open');
+        row.dataset.persistence_band = 1;
+    }
 
-                    document.querySelectorAll('.symptom-check').forEach(cb => { if(symptomsStr.includes(cb.value)) cb.checked = true; });
-                    populateDurationWidget(dayData.hayfever[4], 'hayfever_dur_hrs', 'hayfever_dur_mins');
-                    
-                    let interventions = dayData.hayfever[5] || "";
-                    document.querySelectorAll('input[id^="int_"]').forEach(cb => {
-                        if(interventions.includes(cb.value)) {
-                            cb.checked = true;
-                            let idSuffix = cb.id.split('_')[1];
-                            toggleInterventionExtras(idSuffix);
-                            let match = interventions.match(new RegExp(cb.value + "\\s*(?:\\[(.*?)\\])?\\s*\\((\\d)"));
-                            if(match) {
-                                if(match[1]) document.getElementById('prod_' + idSuffix).value = match[1];
-                                if(match[2]) { document.getElementById('rate_' + idSuffix).value = match[2]; document.getElementById('rate_' + idSuffix).nextElementSibling.innerText = match[2]; }
-                            }
-                        }
-                    });
-                }
-                
-                if(dayData.symptoms && dayData.symptoms.length > 0) {
-                    dayData.symptoms.forEach(sym => {
-                         // addSymptomRow(desc, cause, durDecimal, comment, tag, sacsi)
-                         // sym[3] = SACSI (Col D), sym[4] = Duration (Col E)
-                         addSymptomRow(sym[1], null, sym[4], sym[6], sym[7] || '', sym[3] || '1');
-                    });
-                } else {
-                    addSymptomRow();
-                }
-            } else {
-                addSymptomRow();
-                let sortedDates = Object.keys(globalDataCache).sort((a, b) => new Date(b) - new Date(a));
-                for (let d of sortedDates) {
-                    if (globalDataCache[d].hayfever && globalDataCache[d].hayfever[1]) {
-                        document.getElementById('postcode_prefix').value = globalDataCache[d].hayfever[1];
-                        break;
-                    }
-                }
-            }
+    updateRowCalculations(row);
+    if (!isProgrammaticUpdate) queueOptimisticSync();
+}
 
-            let locationInputVal = document.getElementById('postcode_prefix').value;
-            if (!locationInputVal) {
-                let sortedDates = Object.keys(globalDataCache).sort((a, b) => new Date(b) - new Date(a));
-                for (let d of sortedDates) {
-                    if (globalDataCache[d].hayfever && globalDataCache[d].hayfever[1]) {
-                        document.getElementById('postcode_prefix').value = globalDataCache[d].hayfever[1];
-                        break;
-                    }
-                }
-            }
+function setRowPersistence(btn, val) {
+    const row = btn.closest('.symptom-row');
+    row.dataset.persistence_band = val;
 
-            currentRecordOriginalPollen = {
-                loc: document.getElementById('postcode_prefix').value,
-                lvl: document.getElementById('pollen_count_level').value,
-                spec: document.getElementById('specific_pollens').value
-            };
-            
-            let finalLocation = document.getElementById('postcode_prefix').value;
-            if (finalLocation) {
-                let dayDataCheck = globalDataCache[targetDateString];
-                if (!(dayDataCheck && dayDataCheck.hayfever && dayDataCheck.hayfever[8])) {
-                    fetchLivePollenData(true);
-                }
-            }
-            
-            setTimeout(() => { isProgrammaticUpdate = false; }, 100); 
+    row.querySelectorAll('.persistence-btn').forEach(b => {
+        b.className = "persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all";
+        b.querySelector('div:first-child').className = "font-bold text-emerald-700 text-[10px]";
+    });
+    btn.className = "persistence-btn p-1.5 rounded-lg bg-emerald-600 text-white text-center border border-emerald-500 text-xs shadow-sm transition-all";
+    btn.querySelector('div:first-child').className = "font-bold text-white text-[10px]";
+
+    updateRowCalculations(row);
+    if (!isProgrammaticUpdate) queueOptimisticSync();
+}
+
+function cycleRowAxis(row, axisName) {
+    let axes = JSON.parse(row.dataset.breadth_axes || '{}');
+    let cur = axes[axisName] || 0;
+    axes[axisName] = (cur + 1) % 4;
+    row.dataset.breadth_axes = JSON.stringify(axes);
+
+    renderRowRadar(row);
+    updateRowCalculations(row);
+    if (!isProgrammaticUpdate) queueOptimisticSync();
+}
+
+function renderRowRadar(row) {
+    const svg = row.querySelector('.radar-svg');
+    const axes = JSON.parse(row.dataset.breadth_axes || '{}');
+    let html = '';
+
+    // Large Touch Wedge Sectors
+    AXES_NAMES.forEach((name, i) => {
+        let startAngle = (Math.PI / 3) * i - Math.PI / 2 - (Math.PI / 6);
+        let endAngle = startAngle + (Math.PI / 3);
+        let x1 = RADAR_CENTER + (RADAR_RADIUS + 15) * Math.cos(startAngle);
+        let y1 = RADAR_CENTER + (RADAR_RADIUS + 15) * Math.sin(startAngle);
+        let x2 = RADAR_CENTER + (RADAR_RADIUS + 15) * Math.cos(endAngle);
+        let y2 = RADAR_CENTER + (RADAR_RADIUS + 15) * Math.sin(endAngle);
+
+        let sectorPath = `M ${RADAR_CENTER},${RADAR_CENTER} L ${x1},${y1} A ${RADAR_RADIUS + 15} ${RADAR_RADIUS + 15} 0 0 1 ${x2},${y2} Z`;
+        html += `<path d="${sectorPath}" fill="rgba(15, 23, 42, 0.01)" class="radar-sector-touch" onclick="cycleRowAxis(this.closest('.symptom-row'), '${name}')"><title>${name}</title></path>`;
+    });
+
+    // Concentric Level Rings
+    for (let r = 1; r <= 3; r++) {
+        let radius = (RADAR_RADIUS / 3) * r;
+        let pts = '';
+        for (let i = 0; i < 6; i++) {
+            let angle = (Math.PI / 3) * i - Math.PI / 2;
+            pts += `${RADAR_CENTER + radius * Math.cos(angle)},${RADAR_CENTER + radius * Math.sin(angle)} `;
+        }
+        html += `<polygon points="${pts}" class="radar-grid-ring" pointer-events="none"/>`;
+    }
+
+    // Radial Axis Lines
+    AXES_NAMES.forEach((name, i) => {
+        let angle = (Math.PI / 3) * i - Math.PI / 2;
+        let xEnd = RADAR_CENTER + RADAR_RADIUS * Math.cos(angle);
+        let yEnd = RADAR_CENTER + RADAR_RADIUS * Math.sin(angle);
+        html += `<line x1="${RADAR_CENTER}" y1="${RADAR_CENTER}" x2="${xEnd}" y2="${yEnd}" class="radar-axis-line" pointer-events="none"/>`;
+    });
+
+    // Active Lit Sector Fills & Poly Points
+    let polyPts = '';
+    AXES_NAMES.forEach((name, i) => {
+        let angle = (Math.PI / 3) * i - Math.PI / 2;
+        let val = axes[name] || 0;
+        let r = (RADAR_RADIUS / 3) * val;
+        let x = RADAR_CENTER + r * Math.cos(angle);
+        let y = RADAR_CENTER + r * Math.sin(angle);
+        polyPts += `${x},${y} `;
+
+        if (val > 0) {
+            let startAngle = angle - (Math.PI / 6);
+            let endAngle = angle + (Math.PI / 6);
+            let sx1 = RADAR_CENTER + r * Math.cos(startAngle);
+            let sy1 = RADAR_CENTER + r * Math.sin(startAngle);
+            let sx2 = RADAR_CENTER + r * Math.cos(endAngle);
+            let sy2 = RADAR_CENTER + r * Math.sin(endAngle);
+            let litPath = `M ${RADAR_CENTER},${RADAR_CENTER} L ${sx1},${sy1} A ${r} ${r} 0 0 1 ${sx2},${sy2} Z`;
+            let opacities = [0, 0.25, 0.5, 0.8];
+            html += `<path d="${litPath}" fill="rgba(249, 115, 22, ${opacities[val]})" stroke="#f97316" stroke-width="1" pointer-events="none"/>`;
+        }
+    });
+
+    html += `<polygon points="${polyPts}" fill="rgba(249, 115, 22, 0.3)" stroke="#f97316" stroke-width="2" pointer-events="none"/>`;
+
+    // Vertex Legend Labels
+    AXES_NAMES.forEach((name, i) => {
+        let angle = (Math.PI / 3) * i - Math.PI / 2;
+        let val = axes[name] || 0;
+        let labelRadius = RADAR_RADIUS + 38;
+        let lx = RADAR_CENTER + labelRadius * Math.cos(angle);
+        let ly = RADAR_CENTER + labelRadius * Math.sin(angle);
+        let badgeColor = val > 0 ? "fill='#f97316'" : "fill='#475569'";
+        let textColor = val > 0 ? "#ffffff" : "#cbd5e1";
+
+        html += `<g transform="translate(${lx}, ${ly})" onclick="cycleRowAxis(this.closest('.symptom-row'), '${name}')" class="cursor-pointer">
+            <rect x="-34" y="-13" width="68" height="26" rx="6" ${badgeColor} opacity="0.95" />
+            <text x="0" y="-1" text-anchor="middle" font-size="8.5" font-weight="bold" fill="${textColor}">${AXIS_ICONS[i]} ${name}</text>
+            <text x="0" y="9" text-anchor="middle" font-size="8" font-weight="black" fill="${textColor}">Lvl ${val}</text>
+        </g>`;
+    });
+
+    svg.innerHTML = html;
+}
+
+function updateRowCalculations(row) {
+    const s = parseInt(row.dataset.sacsi_depth || 0);
+    const p = parseInt(row.dataset.persistence_band || 1);
+    const axes = JSON.parse(row.dataset.breadth_axes || '{}');
+    const bSum = Object.values(axes).reduce((a, b) => a + (parseInt(b) || 0), 0);
+
+    let score = 0;
+    if (s > 0) {
+        let raw = (s * 8) + (p * 3) + (bSum * 3);
+        score = Math.max(5, Math.min(100, Math.round((raw / 135) * 100)));
+    }
+    row.dataset.composite_sbi = score;
+
+    row.querySelector('.score-display').innerText = `${score} / 100`;
+
+    const ball = row.querySelector('.orange-ball-element');
+    if (score === 0) {
+        ball.style.width = '6px'; ball.style.height = '6px'; ball.style.boxShadow = 'none'; ball.style.opacity = '0.2';
+    } else {
+        let size = 12 + (score / 100) * 45;
+        ball.style.opacity = '1'; ball.style.width = size + 'px'; ball.style.height = size + 'px';
+        let blur = 6 + (score / 100) * 20;
+        let opacity = 0.4 + (score / 100) * 0.6;
+        ball.style.boxShadow = `0 0 ${blur}px rgba(249, 115, 22, ${opacity}), inset 0 0 ${blur/2}px rgba(254, 215, 170, ${opacity})`;
+    }
+}
+
+function addSymptomRow(type = 'GENERAL', desc = '', cause = '', sacsi = 0, pBand = 1, breadthObj = {}, sbi = 0, treatments = '', notes = '', tag = '') {
+    const container = document.getElementById('symptomsContainer');
+    const template = document.getElementById('symptomRowTemplate');
+    const clone = template.content.cloneNode(true);
+    const row = clone.querySelector('.symptom-row');
+
+    row.dataset.event_type = type;
+    row.dataset.sacsi_depth = sacsi;
+    row.dataset.persistence_band = pBand;
+    row.dataset.breadth_axes = JSON.stringify(breadthObj);
+    row.dataset.composite_sbi = sbi;
+
+    const badge = row.querySelector('.event-badge');
+    badge.innerText = type;
+    badge.className = type === 'HAYFEVER' ? 
+        "event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 border border-emerald-300" :
+        "event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded bg-rose-100 text-rose-800 border border-rose-300";
+
+    row.querySelector('.sym-desc').value = desc;
+    row.querySelector('.sym-cause').value = cause;
+    row.querySelector('.sym-tag').value = tag;
+    row.querySelector('.sym-treatments').value = treatments;
+    row.querySelector('.sym-comment').value = notes;
+    row.querySelector('.sym-sacsi').value = sacsi;
+
+    const pBtn = row.querySelector(`.persistence-btn[data-val="${pBand}"]`);
+    if (pBtn) setRowPersistence(pBtn, pBand);
+
+    handleSacsiRowInput(row.querySelector('.sym-sacsi'));
+    renderRowRadar(row);
+
+    row.querySelectorAll('.input-trigger').forEach(input => {
+        input.addEventListener('change', queueOptimisticSync);
+        input.addEventListener('input', queueOptimisticSync);
+    });
+
+    container.appendChild(row);
+    if (!isProgrammaticUpdate) queueOptimisticSync();
+}
+
+function queueOptimisticSync() {
+    if (isProgrammaticUpdate) return;
+    saveStateToLocalCache();
+    hasPendingChanges = true;
+    clearTimeout(debounceTimer);
+    const toast = document.getElementById('syncToast');
+    const toastIcon = document.getElementById('syncToastIcon');
+    const toastText = document.getElementById('syncToastText');
+    toastIcon.className = "mr-2 loader !border-gray-500 !border-t-white !w-4 !h-4";
+    toastText.innerText = "Local cache updated. Pending sync...";
+    toast.classList.remove('opacity-0');
+
+    debounceTimer = setTimeout(() => { executeNetworkSync(); }, 2000);
+}
+
+function saveStateToLocalCache() {
+    let currentDateStr = document.getElementById('record_date').value;
+    let targetDateString = new Date(currentDateStr).toDateString();
+    let isEditable = isDateEditable(currentDateStr);
+
+    let unifiedSymptomsArray = [];
+    document.querySelectorAll('.symptom-row').forEach(row => {
+        let desc = row.querySelector('.sym-desc').value.trim();
+        let cause = row.querySelector('.sym-cause').value.trim();
+        let tag = row.querySelector('.sym-tag').value.trim();
+        let treatments = row.querySelector('.sym-treatments').value.trim();
+        let notes = row.querySelector('.sym-comment').value.trim();
+
+        if (tag && activeMDMTags.length > 0 && !activeMDMTags.includes(tag.toLowerCase())) {
+            if (!tag.startsWith('[UNVERIFIED]')) tag = '[UNVERIFIED] ' + tag;
         }
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const sleepSelect = document.getElementById('sleep_debt_manual');
-            sleepSelect.innerHTML = '<option value="">Select duration...</option>';
-            for (let h = 0; h <= 12; h++) {
-                for (let m = 0; m < 60; m += 10) {
-                    if (h === 12 && m > 0) break;
-                    let val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-                    let label = `${h}h ${m}m${h === 0 && m === 0 ? ' (None)' : ''}`;
-                    sleepSelect.innerHTML += `<option value="${val}">${label}</option>`;
-                }
-            }
-
-            document.getElementById('record_date').valueAsDate = new Date();
-
-            document.querySelectorAll('.input-trigger').forEach(input => {
-                input.addEventListener('change', queueOptimisticSync);
-                input.addEventListener('input', queueOptimisticSync);
+        if (desc || tag || parseInt(row.dataset.sacsi_depth) > 0) {
+            unifiedSymptomsArray.push({
+                event_type: row.dataset.event_type || 'GENERAL',
+                descriptor: desc,
+                likely_cause: cause,
+                sacsi_depth: parseInt(row.dataset.sacsi_depth || 0),
+                persistence_band: parseInt(row.dataset.persistence_band || 1),
+                breadth_axes: JSON.parse(row.dataset.breadth_axes || '{}'),
+                composite_sbi: parseInt(row.dataset.composite_sbi || 0),
+                treatments: treatments,
+                context_notes: notes,
+                theme_tag: tag
             });
-
-            if (Object.keys(globalDataCache).length > 0) {
-                document.getElementById('loadingState').classList.add('hidden');
-                document.getElementById('healthspanForm').classList.remove('hidden');
-                renderDateFromCache(document.getElementById('record_date').value);
-                updateGlobalTagAutofill();
-            }
-
-            fetch(GOOGLE_SCRIPT_URL)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === "success") {
-                        globalDataCache = data.dataByDate || {};
-                        localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
-                        document.getElementById('loadingState').classList.add('hidden');
-                        document.getElementById('healthspanForm').classList.remove('hidden');
-                        renderDateFromCache(document.getElementById('record_date').value);
-                        updateGlobalTagAutofill();
-                    }
-                });
-        });
-        
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker Registered!', reg.scope))
-                    .catch(err => console.error('Service Worker Registration Failed!', err));
-                });      
         }
-    </script>
+    });
+
+    let locToSave = document.getElementById('postcode_prefix').value;
+    let lvlToSave = document.getElementById('pollen_count_level').value;
+    let specToSave = document.getElementById('specific_pollens').value;
+
+    if (!isEditable) {
+        locToSave = currentRecordOriginalPollen.loc;
+        lvlToSave = currentRecordOriginalPollen.lvl;
+        specToSave = currentRecordOriginalPollen.spec;
+    }
+
+    if (!globalDataCache[targetDateString]) globalDataCache[targetDateString] = { metrics: [], hayfever: new Array(11).fill(""), symptoms: [] };
+    if (!globalDataCache[targetDateString].metrics) globalDataCache[targetDateString].metrics = [];
+    if (!globalDataCache[targetDateString].hayfever) globalDataCache[targetDateString].hayfever = new Array(11).fill("");
+
+    globalDataCache[targetDateString].metrics[6] = document.getElementById('ambient_temp_celsius').value;
+    globalDataCache[targetDateString].metrics[12] = document.getElementById('golf_focus').value;
+    globalDataCache[targetDateString].metrics[13] = document.getElementById('daily_feedback').value;
+    globalDataCache[targetDateString].metrics[15] = document.getElementById('sleep_debt_manual').value;
+
+    globalDataCache[targetDateString].hayfever[1] = locToSave;
+    globalDataCache[targetDateString].hayfever[2] = lvlToSave;
+    globalDataCache[targetDateString].hayfever[7] = specToSave;
+    globalDataCache[targetDateString].hayfever[8] = document.getElementById('hourly_pollen_data').value;
+
+    globalDataCache[targetDateString].symptoms = unifiedSymptomsArray;
+    localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
+    updateGlobalTagAutofill();
+}
+
+function executeNetworkSync() {
+    if (!hasPendingChanges || isSyncing) return Promise.resolve();
+    isSyncing = true;
+    const toastIcon = document.getElementById('syncToastIcon');
+    const toastText = document.getElementById('syncToastText');
+    toastIcon.className = "mr-2 loader !border-emerald-400 !border-t-white !w-4 !h-4";
+    toastText.innerText = "Transmitting Unified Vector...";
+
+    let currentDateStr = document.getElementById('record_date').value;
+    let targetDateString = new Date(currentDateStr).toDateString();
+    const cachedDay = globalDataCache[targetDateString];
+    if (!cachedDay) { isSyncing = false; return Promise.resolve(); }
+
+    const payload = {
+        record_date: currentDateStr,
+        ambient_temp_celsius: cachedDay.metrics?.[6] || "",
+        sleep_debt_manual: cachedDay.metrics?.[15] || "",
+        daily_feedback: cachedDay.metrics?.[13] || "",
+        golf_focus: cachedDay.metrics?.[12] || "",
+        postcode_prefix: cachedDay.hayfever?.[1] || "",
+        pollen_count_level: cachedDay.hayfever?.[2] || "",
+        specific_pollens: cachedDay.hayfever?.[7] || "",
+        hourly_pollen_data: cachedDay.hayfever?.[8] || "",
+        unified_symptoms_array: cachedDay.symptoms || []
+    };
+
+    return fetch(GOOGLE_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === "success") {
+            hasPendingChanges = false;
+            toastIcon.className = "mr-2 text-emerald-400";
+            toastIcon.innerHTML = '<i class="fa-solid fa-check"></i>';
+            toastText.innerText = "Matrix Synchronized";
+            setTimeout(() => { if(!hasPendingChanges) document.getElementById('syncToast').classList.add('opacity-0'); }, 2500);
+        } else throw new Error(data.message);
+    })
+    .catch((error) => {
+        toastIcon.className = "mr-2 text-red-500";
+        toastIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        toastText.innerText = "Schema Rejection: Check Script";
+        hasPendingChanges = false;
+        console.error("ETL Pipeline Failure:", error);
+    })
+    .finally(() => { isSyncing = false; });
+}
+
+async function handleDateSwitch(daysOffset, isDirectInput = false) {
+    let dateInput = document.getElementById('record_date');
+    if (hasPendingChanges) {
+        clearTimeout(debounceTimer);
+        document.getElementById('ui-lock-overlay').style.display = 'flex';
+        try { await executeNetworkSync(); } catch(e) { console.error("Sync error before date switch", e); }
+        document.getElementById('ui-lock-overlay').style.display = 'none';
+    }
+
+    if (!isDirectInput) {
+        let currentDate = new Date(dateInput.value);
+        currentDate.setDate(currentDate.getDate() + daysOffset);
+        dateInput.valueAsDate = currentDate;
+    }
+    renderDateFromCache(dateInput.value);
+}
+
+function updateGlobalTagAutofill() {
+    const tagsSet = new Set();
+    for (let dateKey in globalDataCache) {
+        if (globalDataCache[dateKey].symptoms) {
+            globalDataCache[dateKey].symptoms.forEach(sym => {
+                let tag = sym.theme_tag || sym[7];
+                if (tag) tagsSet.add(tag.trim().toLowerCase());
+            });
+        }
+    }
+    activeMDMTags = Array.from(tagsSet);
+    const datalist = document.getElementById('globalSymptomTags');
+    if (datalist) {
+        datalist.innerHTML = '';
+        activeMDMTags.forEach(tag => {
+            let option = document.createElement('option');
+            option.value = tag.charAt(0).toUpperCase() + tag.slice(1);
+            datalist.appendChild(option);
+        });
+    }
+}
+
+function renderDateFromCache(dateStr) {
+    isProgrammaticUpdate = true;
+    let targetDateString = new Date(dateStr).toDateString();
+    document.getElementById('ambient_temp_celsius').value = '';
+    document.getElementById('sleep_debt_manual').value = '';
+    document.getElementById('daily_feedback').value = '';
+    document.getElementById('postcode_prefix').value = '';
+    document.getElementById('pollen_count_level').value = '';
+    document.getElementById('specific_pollens').value = '';
+    document.getElementById('hourly_pollen_data').value = '';
+    document.getElementById('ui_overall_pollen').innerText = 'Awaiting Data...';
+    document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI('');
+    document.getElementById('pollenChartContainer').classList.add('hidden');
+    document.getElementById('symptomsContainer').innerHTML = '';
+    document.getElementById('golf_focus').value = '';
+
+    let dayData = globalDataCache[targetDateString];
+    if (dayData) {
+        if(dayData.metrics) {
+            document.getElementById('ambient_temp_celsius').value = dayData.metrics[6] || '';
+            document.getElementById('golf_focus').value = dayData.metrics[12] || '';
+            document.getElementById('daily_feedback').value = dayData.metrics[13] || '';
+            document.getElementById('sleep_debt_manual').value = dayData.metrics[15] || '';
+        }
+        if(dayData.hayfever) {
+            let locationName = dayData.hayfever[1] || '';
+            if (!locationName && targetDateString === new Date().toDateString()) {
+                let sortedDates = Object.keys(globalDataCache).sort((a, b) => new Date(b) - new Date(a));
+                for (let d of sortedDates) { if (globalDataCache[d].hayfever && globalDataCache[d].hayfever[1]) { locationName = globalDataCache[d].hayfever[1]; break; } }
+            }
+            document.getElementById('postcode_prefix').value = locationName;
+            document.getElementById('pollen_count_level').value = dayData.hayfever[2] || '';
+            document.getElementById('specific_pollens').value = dayData.hayfever[7] || '';
+            document.getElementById('hourly_pollen_data').value = dayData.hayfever[8] || '';
+            document.getElementById('ui_overall_pollen').innerText = `Overall: ${dayData.hayfever[2] || 'No Data'}`;
+            document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(dayData.hayfever[7]);
+
+            if (dayData.hayfever[8]) {
+                try {
+                    const hourlyTotals = JSON.parse(dayData.hayfever[8]);
+                    const chart = document.getElementById('pollenChart');
+                    chart.innerHTML = '';
+                    const maxHourlyTotal = Math.max(...hourlyTotals, 1);
+                    document.getElementById('chartMax').innerText = `Max: ${Math.round(maxHourlyTotal)}`;
+                    document.getElementById('chartMin').innerText = `Min: ${Math.round(Math.min(...hourlyTotals))}`;
+                    hourlyTotals.forEach((total) => {
+                        let color = total >= 50 ? '#f87171' : total >= 10 ? '#fbbf24' : '#34d399';
+                        let pct = Math.max(5, (total / maxHourlyTotal) * 100);
+                        chart.innerHTML += `<div class="flex-1 rounded-t-sm" style="background-color: ${color}; height: ${pct}%; min-height: 2px;"></div>`;
+                    });
+                    document.getElementById('pollenChartContainer').classList.remove('hidden');
+                } catch(e) {}
+            }
+        }
+        if(dayData.symptoms && dayData.symptoms.length > 0) {
+            dayData.symptoms.forEach(sym => {
+                if (typeof sym === 'object' && !Array.isArray(sym)) {
+                    addSymptomRow(sym.event_type || 'GENERAL', sym.descriptor, sym.likely_cause, sym.sacsi_depth, sym.persistence_band, sym.breadth_axes, sym.composite_sbi, sym.treatments, sym.context_notes, sym.theme_tag);
+                } else if (Array.isArray(sym)) { // Legacy fallback
+                    addSymptomRow('GENERAL', sym[1], sym[2], sym[3], 1, {}, 0, '', sym[6], sym[7]);
+                }
+            });
+        } else {
+            addSymptomRow('GENERAL');
+        }
+    } else {
+        addSymptomRow('GENERAL');
+        let sortedDates = Object.keys(globalDataCache).sort((a, b) => new Date(b) - new Date(a));
+        for (let d of sortedDates) {
+            if (globalDataCache[d].hayfever && globalDataCache[d].hayfever[1]) {
+                document.getElementById('postcode_prefix').value = globalDataCache[d].hayfever[1];
+                break;
+            }
+        }
+    }
+
+    currentRecordOriginalPollen = {
+        loc: document.getElementById('postcode_prefix').value,
+        lvl: document.getElementById('pollen_count_level').value,
+        spec: document.getElementById('specific_pollens').value
+    };
+    if (document.getElementById('postcode_prefix').value) {
+        let dayDataCheck = globalDataCache[targetDateString];
+        if (!(dayDataCheck && dayDataCheck.hayfever && dayDataCheck.hayfever[8])) fetchLivePollenData(true);
+    }
+    setTimeout(() => { isProgrammaticUpdate = false; }, 100);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const sleepSelect = document.getElementById('sleep_debt_manual');
+    sleepSelect.innerHTML = '<option value="">Select duration...</option>';
+    for (let h = 0; h <= 12; h++) {
+        for (let m = 0; m < 60; m += 10) {
+            if (h === 12 && m > 0) break;
+            let val = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+            let label = `${h}h ${m}m${h === 0 && m === 0 ? ' (None)' : ''}`;
+            sleepSelect.innerHTML += `<option value="${val}">${label}</option>`;
+        }
+    }
+
+    document.getElementById('record_date').valueAsDate = new Date();
+    document.querySelectorAll('.input-trigger').forEach(input => {
+        input.addEventListener('change', queueOptimisticSync);
+        input.addEventListener('input', queueOptimisticSync);
+    });
+
+    if (Object.keys(globalDataCache).length > 0) {
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('healthspanForm').classList.remove('hidden');
+        renderDateFromCache(document.getElementById('record_date').value);
+        updateGlobalTagAutofill();
+    }
+
+    fetch(GOOGLE_SCRIPT_URL)
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === "success") {
+            globalDataCache = data.dataByDate || {};
+            localStorage.setItem('healthspan_cache', JSON.stringify(globalDataCache));
+            document.getElementById('loadingState').classList.add('hidden');
+            document.getElementById('healthspanForm').classList.remove('hidden');
+            renderDateFromCache(document.getElementById('record_date').value);
+            updateGlobalTagAutofill();
+        }
+    });
+});
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log('Service Worker Registered!', reg.scope))
+        .catch(err => console.error('Service Worker Registration Failed!', err));
+    });
+}
+</script>
 </body>
 </html>
