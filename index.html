@@ -28,7 +28,7 @@
         }
         #syncToast { transition: opacity 0.3s ease; }
 
-        /* Top-Down Vertical SACSI Slider (0 at Top, 10 at Bottom) */
+        /* Top-Down Vertical Severity Slider (0 at Top, 10 at Bottom) */
         .vertical-slider-container { display: flex; flex-direction: column; align-items: center; position: relative; height: 210px; justify-content: center; }
         .vertical-range-topdown {
             writing-mode: bt-lr;
@@ -76,7 +76,7 @@
         <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight drop-shadow-lg">
             Healthspan Metrics
         </h1>
-        <p class="text-indigo-200 mt-2 font-medium">Unified Telemetry Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v5.0</span></p>
+        <p class="text-indigo-200 mt-2 font-medium">Daily Tracking Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v5.1</span></p>
     </header>
 
     <div id="loadingState" class="flex flex-col items-center justify-center py-12">
@@ -130,40 +130,41 @@
             </div>
         </div>
 
-        <!-- SECTION 2: Environmental Pollen Context -->
-        <div id="section_hayfever" class="glass-card p-6 border-t-4 border-emerald-500">
-            <h2 class="text-xl font-bold text-emerald-800 mb-4 flex items-center"><span class="text-2xl mr-2">🌿</span> Environmental Location & Pollen Context</h2>
+        <!-- SECTION 2: Environmental & Hayfever Panel (Unified Light Green Shade) -->
+        <div id="section_hayfever" class="glass-card p-6 border-t-4 border-emerald-500 bg-emerald-50/50">
+            <h2 class="text-xl font-bold text-emerald-800 mb-4 flex items-center"><span class="text-2xl mr-2">🌿</span> Environmental & Hayfever Context</h2>
+            
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100 flex flex-col justify-between">
+                <div class="bg-emerald-100/60 p-4 rounded-lg border border-emerald-200 flex flex-col justify-between">
                     <div>
                         <label class="block text-xs font-bold text-emerald-800 uppercase tracking-wide mb-1">Location / Town (Europe)</label>
-                        <input type="text" id="postcode_prefix" placeholder="e.g. Wilmslow or Paris" class="w-full p-2 border border-emerald-200 rounded bg-white focus:ring-2 focus:ring-emerald-500 input-trigger font-semibold" onchange="fetchLivePollenData()">
+                        <input type="text" id="postcode_prefix" placeholder="e.g. Wilmslow or Paris" class="w-full p-2 border border-emerald-300 rounded bg-white focus:ring-2 focus:ring-emerald-500 input-trigger font-semibold text-sm" onchange="fetchLivePollenData()">
                     </div>
-                    <p id="locationHelperText" class="text-xs text-emerald-600 mt-2">Type any European city to update coordinates.</p>
+                    <p id="locationHelperText" class="text-xs text-emerald-700 mt-2">Type any European city to update coordinates.</p>
                 </div>
 
-                <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100 shadow-inner relative flex flex-col justify-between">
+                <div class="bg-emerald-100/60 p-4 rounded-lg border border-emerald-200 shadow-inner relative flex flex-col justify-between">
                     <div id="pollenLoader" class="absolute inset-0 bg-emerald-50/90 flex items-center justify-center rounded-lg z-10 hidden">
                         <div class="loader !border-emerald-200 !border-t-emerald-600"></div>
                     </div>
                     <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-xs font-bold text-emerald-600 uppercase tracking-wide">Pollen Exogenous Model</p>
+                            <p class="text-xs font-bold text-emerald-700 uppercase tracking-wide">Pollen Exogenous Model</p>
                             <h3 id="ui_overall_pollen" class="text-xl font-black text-emerald-900">Awaiting Data...</h3>
                         </div>
-                        <button type="button" onclick="fetchLivePollenData()" class="text-emerald-600 hover:text-emerald-800 p-1 text-sm font-bold bg-white rounded shadow-sm px-2 border border-emerald-200" title="Force Refresh API">🔄 Refresh</button>
+                        <button type="button" onclick="fetchLivePollenData()" class="text-emerald-700 hover:text-emerald-900 p-1 text-sm font-bold bg-white rounded shadow-sm px-2 border border-emerald-300" title="Force Refresh API">🔄 Refresh</button>
                     </div>
-                    <div id="ui_specific_pollens" class="text-xs md:text-sm font-medium text-emerald-700 bg-white/70 p-2 rounded border border-emerald-200 mt-2 flex justify-around">
+                    <div id="ui_specific_pollens" class="text-xs md:text-sm font-medium text-emerald-800 bg-white/80 p-2 rounded border border-emerald-200 mt-2 flex justify-around">
                         <span title="Tree Pollen">🌲 --</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 --</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 --</span>
                     </div>
 
                     <div id="pollenChartContainer" class="mt-3 hidden w-full">
                         <div class="flex justify-between items-center mb-1">
-                            <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">24-Hour Pollen Trend</p>
+                            <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">24-Hour Pollen Trend</p>
                         </div>
                         <div class="flex items-center">
-                            <div id="pollenChart" class="flex-1 flex items-end justify-between h-14 gap-[2px] bg-white/50 p-1.5 rounded border border-emerald-200"></div>
-                            <div class="flex flex-col justify-between h-14 pl-2 text-[9px] text-emerald-700 font-bold whitespace-nowrap">
+                            <div id="pollenChart" class="flex-1 flex items-end justify-between h-14 gap-[2px] bg-white/60 p-1.5 rounded border border-emerald-300"></div>
+                            <div class="flex flex-col justify-between h-14 pl-2 text-[9px] text-emerald-800 font-bold whitespace-nowrap">
                                 <span id="chartMax">Max: --</span>
                                 <span id="chartMin">Min: --</span>
                             </div>
@@ -177,16 +178,17 @@
             </div>
         </div>
 
-        <!-- SECTION 3: Unified Symptom & SACSI Telemetry Engine -->
+        <!-- SECTION 3: Symptoms Logging Engine -->
         <div id="section_symptoms" class="glass-card p-6 border-t-4 border-rose-500 space-y-4">
             <div class="flex justify-between items-center">
                 <div>
-                    <h2 class="text-xl font-bold text-rose-800 flex items-center"><span class="text-2xl mr-2">❤️‍🩹</span> Unified Symptom Telemetry Log</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Depth, Persistence & Spatial Spread Vector Entry</p>
+                    <h2 class="text-xl font-bold text-rose-800 flex items-center"><span class="text-2xl mr-2">❤️‍🩹</span> Symptoms</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Somatic Severity, Persistence & Topological Spread</p>
                 </div>
-                <div class="flex space-x-2">
-                    <button type="button" onclick="addSymptomRow('HAYFEVER')" class="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 font-bold py-2 px-3 rounded-lg text-xs border border-emerald-300 shadow-sm transition-colors">+ Hayfever Event</button>
-                    <button type="button" onclick="addSymptomRow('GENERAL')" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold py-2 px-3 rounded-lg text-xs border border-rose-300 shadow-sm transition-colors">+ General Symptom</button>
+                <div>
+                    <button type="button" onclick="addSymptomRow('GENERAL')" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold py-2 px-4 rounded-lg text-xs border border-rose-300 shadow-sm transition-colors flex items-center">
+                        <i class="fa-solid fa-plus mr-1.5"></i> Symptom
+                    </button>
                 </div>
             </div>
 
@@ -206,7 +208,7 @@
         
         <div class="flex justify-between items-center pr-8 border-b border-slate-200 pb-2">
             <div class="flex items-center space-x-2">
-                <span class="event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded border">GENERAL</span>
+                <span class="event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded bg-rose-100 text-rose-800 border border-rose-300">LOG</span>
                 <span class="text-xs font-bold text-slate-500 uppercase">Symptom Telemetry Vector</span>
             </div>
             <div class="flex items-center space-x-2">
@@ -224,7 +226,7 @@
 
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Likely Cause / Trigger</label>
-                    <input type="text" class="sym-cause w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-white text-sm" placeholder="e.g. Pollen Exposure / Kinetic Load">
+                    <input type="text" class="sym-cause w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-white text-sm" placeholder="e.g. High pollen count / Kinetic Load">
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
@@ -243,7 +245,7 @@
             <!-- INTEGRATED SPATIAL GRID: TOP-DOWN SLIDER + RADAR + ORANGE BALL -->
             <div class="md:col-span-7 bg-white p-3.5 rounded-xl border border-slate-200 grid grid-cols-12 gap-3 items-center">
                 
-                <!-- TOP-DOWN SACSI SLIDER -->
+                <!-- TOP-DOWN SEVERITY SLIDER -->
                 <div class="col-span-3 flex flex-col items-center justify-center bg-slate-100 p-2 rounded-lg border border-slate-200">
                     <span class="text-[9px] font-bold text-slate-400 uppercase mb-1">Top = 0</span>
                     <div class="vertical-slider-container">
@@ -255,7 +257,7 @@
                 <!-- SECTOR RADAR & ORANGE BALL -->
                 <div class="col-span-9 flex flex-col items-center justify-between h-full space-y-2">
                     <div class="flex justify-between items-center w-full">
-                        <span class="sacsi-val-display bg-rose-100 text-rose-900 px-2 py-0.5 rounded font-black text-xs border border-rose-200">SACSI: 0/10</span>
+                        <span class="sacsi-val-display bg-rose-100 text-rose-900 px-2 py-0.5 rounded font-black text-xs border border-rose-200">Severity: 0/10</span>
                         <div class="flex items-center space-x-2">
                             <span class="text-[9px] font-bold uppercase text-slate-400">Burden:</span>
                             <div class="orange-ball-element w-3 h-3 rounded-full"></div>
@@ -263,18 +265,20 @@
                     </div>
 
                     <div class="relative flex justify-center items-center w-full overflow-hidden">
-                        <svg class="radar-svg select-none" width="230" height="200" viewBox="0 0 320 280"></svg>
+                        <svg class="radar-svg select-none" width="250" height="220" viewBox="0 0 320 280"></svg>
                     </div>
                 </div>
 
             </div>
         </div>
 
-        <div class="bg-white p-3 rounded-lg border border-slate-200">
-            <p class="sacsi-text-anchor text-xs italic text-slate-600">Baseline / Asymptomatic. Zero impairment, normal physiological function.</p>
+        <!-- SEVERITY EXPLAINER BANNER (Half-Width, Positioned Directly Above Hexagon) -->
+        <div class="w-full md:w-1/2 mx-auto bg-slate-100 p-3 rounded-lg border border-slate-200 text-center shadow-inner">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Severity Benchmark</span>
+            <p class="sacsi-text-anchor text-xs italic text-slate-700 leading-tight">Baseline / Asymptomatic. Zero impairment, normal physiological function.</p>
         </div>
 
-        <!-- THRESHOLD PERSISTENCE DRAWER (SACSI > 0) -->
+        <!-- THRESHOLD PERSISTENCE DRAWER (Severity > 0) -->
         <div class="threshold-drawer space-y-3">
             <div class="bg-emerald-50/60 p-3 rounded-lg border border-emerald-200">
                 <label class="block text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1.5">Persistence (Duration Band)</label>
@@ -315,7 +319,7 @@ let debounceTimer = null;
 let isSyncing = false;
 let hasPendingChanges = false;
 
-const SACSI_DEFINITIONS = {
+const SEVERITY_DEFINITIONS = {
     0: "Baseline / Asymptomatic. Zero impairment, normal physiological function.",
     1: "Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted. Zero routine modification.",
     2: "Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted. Zero routine modification.",
@@ -467,8 +471,8 @@ function handleSacsiRowInput(slider) {
     const depth = parseInt(slider.value);
     row.dataset.sacsi_depth = depth;
 
-    row.querySelector('.sacsi-val-display').innerText = `SACSI: ${depth}/10`;
-    row.querySelector('.sacsi-text-anchor').innerText = SACSI_DEFINITIONS[depth];
+    row.querySelector('.sacsi-val-display').innerText = `Severity: ${depth}/10`;
+    row.querySelector('.sacsi-text-anchor').innerText = SEVERITY_DEFINITIONS[depth];
 
     const drawer = row.querySelector('.threshold-drawer');
     if (depth > 0) {
@@ -570,20 +574,20 @@ function renderRowRadar(row) {
 
     html += `<polygon points="${polyPts}" fill="rgba(249, 115, 22, 0.3)" stroke="#f97316" stroke-width="2" pointer-events="none"/>`;
 
-    // Vertex Legend Labels
+    // ENLARGED Vertex Legend Labels (Spatially Anchored)
     AXES_NAMES.forEach((name, i) => {
         let angle = (Math.PI / 3) * i - Math.PI / 2;
         let val = axes[name] || 0;
-        let labelRadius = RADAR_RADIUS + 38;
+        let labelRadius = RADAR_RADIUS + 42;
         let lx = RADAR_CENTER + labelRadius * Math.cos(angle);
         let ly = RADAR_CENTER + labelRadius * Math.sin(angle);
-        let badgeColor = val > 0 ? "fill='#f97316'" : "fill='#475569'";
-        let textColor = val > 0 ? "#ffffff" : "#cbd5e1";
+        let badgeColor = val > 0 ? "fill='#f97316'" : "fill='#334155'";
+        let textColor = val > 0 ? "#ffffff" : "#f1f5f9";
 
         html += `<g transform="translate(${lx}, ${ly})" onclick="cycleRowAxis(this.closest('.symptom-row'), '${name}')" class="cursor-pointer">
-            <rect x="-34" y="-13" width="68" height="26" rx="6" ${badgeColor} opacity="0.95" />
-            <text x="0" y="-1" text-anchor="middle" font-size="8.5" font-weight="bold" fill="${textColor}">${AXIS_ICONS[i]} ${name}</text>
-            <text x="0" y="9" text-anchor="middle" font-size="8" font-weight="black" fill="${textColor}">Lvl ${val}</text>
+            <rect x="-41" y="-15" width="82" height="30" rx="7" ${badgeColor} opacity="0.95" />
+            <text x="0" y="-1" text-anchor="middle" font-size="11" font-weight="bold" fill="${textColor}">${AXIS_ICONS[i]} ${name}</text>
+            <text x="0" y="10" text-anchor="middle" font-size="10" font-weight="black" fill="${textColor}">Lvl ${val}</text>
         </g>`;
     });
 
@@ -628,12 +632,6 @@ function addSymptomRow(type = 'GENERAL', desc = '', cause = '', sacsi = 0, pBand
     row.dataset.persistence_band = pBand;
     row.dataset.breadth_axes = JSON.stringify(breadthObj);
     row.dataset.composite_sbi = sbi;
-
-    const badge = row.querySelector('.event-badge');
-    badge.innerText = type;
-    badge.className = type === 'HAYFEVER' ? 
-        "event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded bg-emerald-100 text-emerald-800 border border-emerald-300" :
-        "event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded bg-rose-100 text-rose-800 border border-rose-300";
 
     row.querySelector('.sym-desc').value = desc;
     row.querySelector('.sym-cause').value = cause;
@@ -878,7 +876,7 @@ function renderDateFromCache(dateStr) {
             dayData.symptoms.forEach(sym => {
                 if (typeof sym === 'object' && !Array.isArray(sym)) {
                     addSymptomRow(sym.event_type || 'GENERAL', sym.descriptor, sym.likely_cause, sym.sacsi_depth, sym.persistence_band, sym.breadth_axes, sym.composite_sbi, sym.treatments, sym.context_notes, sym.theme_tag);
-                } else if (Array.isArray(sym)) { // Legacy fallback
+                } else if (Array.isArray(sym)) {
                     addSymptomRow('GENERAL', sym[1], sym[2], sym[3], 1, {}, 0, '', sym[6], sym[7]);
                 }
             });
