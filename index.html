@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Healthspan Daily Tracker</title>
-    <link rel="manifest" href="./manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e1b4b">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Healthspan">
-    <link rel="icon" type="image/png" sizes="192x192" href="/healthspan-tracker/assets/icons/icon-192.png">
-    <link rel="apple-touch-icon" href="/healthspan-tracker/assets/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -47,14 +47,28 @@
         .threshold-drawer.open { max-height: 800px; opacity: 1; }
 
         .radar-sector-touch { cursor: pointer; transition: fill 0.2s, opacity 0.2s; }
-        .radar-sector-touch:hover { fill: rgba(249, 115, 22, 0.15); }
+        .radar-sector-touch:hover { fill: rgba(16, 185, 129, 0.15); }
         .radar-axis-line { stroke: rgba(148, 163, 184, 0.4); stroke-dasharray: 3 3; }
         .radar-grid-ring { fill: none; stroke: rgba(148, 163, 184, 0.3); }
 
+        /* Burden Indicator Balls */
+        .green-ball-element {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: radial-gradient(circle at 30% 30%, #a7f3d0 0%, #10b981 50%, #047857 100%);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
         .orange-ball-element {
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             background: radial-gradient(circle at 30% 30%, #fed7aa 0%, #f97316 50%, #c2410c 100%);
             box-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
+        }
+
+        /* Sticky Date Header Styling */
+        .sticky-date-bar {
+            position: sticky;
+            top: 1rem;
+            z-index: 40;
+            backdrop-filter: blur(8px);
         }
     </style>
 </head>
@@ -76,7 +90,7 @@
         <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight drop-shadow-lg">
             Healthspan Metrics
         </h1>
-        <p class="text-indigo-200 mt-2 font-medium">Daily Tracking Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v5.1</span></p>
+        <p class="text-indigo-200 mt-2 font-medium">Daily Tracking Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v5.3</span></p>
     </header>
 
     <div id="loadingState" class="flex flex-col items-center justify-center py-12">
@@ -85,12 +99,21 @@
     </div>
 
     <form id="healthspanForm" class="space-y-6 hidden">
-        <div class="flex justify-end mb-2">
-            <div class="glass-card p-3 border-4 border-yellow-400 bg-yellow-100 flex items-center space-x-3 shadow-lg">
+        
+        <!-- FROZEN/STICKY ACTIVE DATE CONTROL HEADER -->
+        <div class="flex justify-end sticky-date-bar mb-2">
+            <div class="glass-card p-3 border-4 border-yellow-400 bg-yellow-100 flex items-center space-x-3 shadow-xl">
                 <button type="button" onclick="handleDateSwitch(-1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl transition-transform hover:scale-110">&larr;</button>
-                <div>
-                    <label class="block text-xs font-bold text-yellow-800 uppercase tracking-wide text-center">Active Record Date</label>
-                    <input type="date" id="record_date" required class="bg-yellow-200 text-yellow-900 text-2xl font-black p-2 rounded text-center border-none focus:ring-2 focus:ring-yellow-500 cursor-pointer" onchange="handleDateSwitch(0, true)">
+                <div class="text-center">
+                    <label class="block text-xs font-bold text-yellow-800 uppercase tracking-wide">Active Record Date</label>
+                    <div class="flex items-center justify-center space-x-2">
+                        <!-- Custom UK/Local Date Format Display (dd/mm/yyyy) -->
+                        <span id="record_date_display" class="text-yellow-900 text-2xl font-black tracking-tight">--/--/----</span>
+                        <input type="date" id="record_date" required class="sr-only" onchange="handleDateSwitch(0, true)">
+                        <button type="button" onclick="document.getElementById('record_date').showPicker()" class="text-yellow-800 hover:text-yellow-900 text-sm font-bold bg-yellow-200 p-1.5 rounded-md border border-yellow-400">
+                            <i class="fa-solid fa-calendar-days"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="button" onclick="handleDateSwitch(1)" class="text-yellow-700 hover:text-yellow-900 font-bold p-2 text-xl transition-transform hover:scale-110">&rarr;</button>
             </div>
@@ -130,21 +153,30 @@
             </div>
         </div>
 
-        <!-- SECTION 2: Environmental & Hayfever Panel (Unified Light Green Shade) -->
-        <div id="section_hayfever" class="glass-card p-6 border-t-4 border-emerald-500 bg-emerald-50/50">
-            <h2 class="text-xl font-bold text-emerald-800 mb-4 flex items-center"><span class="text-2xl mr-2">🌿</span> Environmental & Hayfever Context</h2>
-            
+        <!-- SECTION 2: UNIFIED ENVIRONMENTAL & HAYFEVER PANEL (Light Green Theme) -->
+        <div id="section_hayfever" class="glass-card p-6 border-t-4 border-emerald-500 bg-emerald-50/80 space-y-6">
+            <div class="flex justify-between items-center border-b border-emerald-200 pb-3">
+                <div>
+                    <h2 class="text-xl font-bold text-emerald-900 flex items-center"><span class="text-2xl mr-2">🌿</span> Environmental & Hayfever Panel</h2>
+                    <p class="text-xs text-emerald-700 mt-0.5">Exogenous Pollen Vectors & Direct Hayfever Episode Telemetry</p>
+                </div>
+                <button type="button" onclick="addSymptomRow('HAYFEVER')" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3.5 rounded-lg text-xs shadow-md transition-all flex items-center">
+                    <i class="fa-solid fa-plus mr-1.5"></i> Log Hayfever Episode
+                </button>
+            </div>
+
+            <!-- Location & Pollen Context Sub-Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-emerald-100/60 p-4 rounded-lg border border-emerald-200 flex flex-col justify-between">
+                <div class="bg-white/90 p-4 rounded-xl border border-emerald-200 flex flex-col justify-between shadow-sm">
                     <div>
                         <label class="block text-xs font-bold text-emerald-800 uppercase tracking-wide mb-1">Location / Town (Europe)</label>
-                        <input type="text" id="postcode_prefix" placeholder="e.g. Wilmslow or Paris" class="w-full p-2 border border-emerald-300 rounded bg-white focus:ring-2 focus:ring-emerald-500 input-trigger font-semibold text-sm" onchange="fetchLivePollenData()">
+                        <input type="text" id="postcode_prefix" placeholder="e.g. Wilmslow or Paris" class="w-full p-2.5 border border-emerald-300 rounded-lg bg-white focus:ring-2 focus:ring-emerald-500 input-trigger font-semibold text-sm" onchange="fetchLivePollenData()">
                     </div>
-                    <p id="locationHelperText" class="text-xs text-emerald-700 mt-2">Type any European city to update coordinates.</p>
+                    <p id="locationHelperText" class="text-xs text-emerald-600 mt-2">Type any European city to update coordinates.</p>
                 </div>
 
-                <div class="bg-emerald-100/60 p-4 rounded-lg border border-emerald-200 shadow-inner relative flex flex-col justify-between">
-                    <div id="pollenLoader" class="absolute inset-0 bg-emerald-50/90 flex items-center justify-center rounded-lg z-10 hidden">
+                <div class="bg-white/90 p-4 rounded-xl border border-emerald-200 shadow-sm relative flex flex-col justify-between">
+                    <div id="pollenLoader" class="absolute inset-0 bg-emerald-50/90 flex items-center justify-center rounded-xl z-10 hidden">
                         <div class="loader !border-emerald-200 !border-t-emerald-600"></div>
                     </div>
                     <div class="flex justify-between items-start">
@@ -152,9 +184,9 @@
                             <p class="text-xs font-bold text-emerald-700 uppercase tracking-wide">Pollen Exogenous Model</p>
                             <h3 id="ui_overall_pollen" class="text-xl font-black text-emerald-900">Awaiting Data...</h3>
                         </div>
-                        <button type="button" onclick="fetchLivePollenData()" class="text-emerald-700 hover:text-emerald-900 p-1 text-sm font-bold bg-white rounded shadow-sm px-2 border border-emerald-300" title="Force Refresh API">🔄 Refresh</button>
+                        <button type="button" onclick="fetchLivePollenData()" class="text-emerald-700 hover:text-emerald-900 p-1 text-sm font-bold bg-emerald-100 rounded shadow-sm px-2 border border-emerald-300" title="Force Refresh API">🔄 Refresh</button>
                     </div>
-                    <div id="ui_specific_pollens" class="text-xs md:text-sm font-medium text-emerald-800 bg-white/80 p-2 rounded border border-emerald-200 mt-2 flex justify-around">
+                    <div id="ui_specific_pollens" class="text-xs md:text-sm font-medium text-emerald-800 bg-emerald-50/90 p-2 rounded-lg border border-emerald-200 mt-2 flex justify-around">
                         <span title="Tree Pollen">🌲 --</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 --</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 --</span>
                     </div>
 
@@ -163,7 +195,7 @@
                             <p class="text-[10px] font-bold text-emerald-700 uppercase tracking-wide">24-Hour Pollen Trend</p>
                         </div>
                         <div class="flex items-center">
-                            <div id="pollenChart" class="flex-1 flex items-end justify-between h-14 gap-[2px] bg-white/60 p-1.5 rounded border border-emerald-300"></div>
+                            <div id="pollenChart" class="flex-1 flex items-end justify-between h-14 gap-[2px] bg-white p-1.5 rounded-lg border border-emerald-200"></div>
                             <div class="flex flex-col justify-between h-14 pl-2 text-[9px] text-emerald-800 font-bold whitespace-nowrap">
                                 <span id="chartMax">Max: --</span>
                                 <span id="chartMin">Min: --</span>
@@ -176,14 +208,17 @@
                     <input type="hidden" id="hourly_pollen_data" value="">
                 </div>
             </div>
+
+            <!-- Dynamic Hayfever Episode Rows Container -->
+            <div id="hayfeverContainer" class="space-y-4"></div>
         </div>
 
-        <!-- SECTION 3: Symptoms Logging Engine -->
+        <!-- SECTION 3: General Symptoms Logging Engine -->
         <div id="section_symptoms" class="glass-card p-6 border-t-4 border-rose-500 space-y-4">
-            <div class="flex justify-between items-center">
+            <div class="flex justify-between items-center border-b border-rose-200 pb-3">
                 <div>
-                    <h2 class="text-xl font-bold text-rose-800 flex items-center"><span class="text-2xl mr-2">❤️‍🩹</span> Symptoms</h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Somatic Severity, Persistence & Topological Spread</p>
+                    <h2 class="text-xl font-bold text-rose-800 flex items-center"><span class="text-2xl mr-2">❤️‍🩹</span> General Symptoms</h2>
+                    <p class="text-xs text-slate-500 mt-0.5">Somatic Severity, Persistence & Topological Radar Vectors</p>
                 </div>
                 <div>
                     <button type="button" onclick="addSymptomRow('GENERAL')" class="bg-rose-100 text-rose-700 hover:bg-rose-200 font-bold py-2 px-4 rounded-lg text-xs border border-rose-300 shadow-sm transition-colors flex items-center">
@@ -203,17 +238,17 @@
 
 <template id="symptomRowTemplate">
     <datalist id="globalSymptomTags"></datalist>
-    <div class="symptom-row sacsi-container bg-slate-50 p-5 rounded-xl border-2 border-slate-300 relative shadow-md space-y-4">
+    <div class="symptom-row sacsi-container p-5 rounded-xl border-2 relative shadow-md space-y-4 transition-all">
         <button type="button" onclick="this.closest('.symptom-row').remove(); queueOptimisticSync();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-2xl font-bold px-2 z-10">&times;</button>
         
-        <div class="flex justify-between items-center pr-8 border-b border-slate-200 pb-2">
+        <div class="flex justify-between items-center pr-8 border-b pb-2 sym-header-border">
             <div class="flex items-center space-x-2">
-                <span class="event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded bg-rose-100 text-rose-800 border border-rose-300">LOG</span>
-                <span class="text-xs font-bold text-slate-500 uppercase">Symptom Telemetry Vector</span>
+                <span class="event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded">LOG</span>
+                <span class="text-xs font-bold text-slate-500 uppercase">Symptom Vector</span>
             </div>
             <div class="flex items-center space-x-2">
                 <span class="text-[10px] font-bold text-slate-400 uppercase">Systemic Burden:</span>
-                <span class="score-display text-xs font-black text-amber-600 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">0 / 100</span>
+                <span class="score-display text-xs font-black px-2 py-0.5 rounded">0 / 100</span>
             </div>
         </div>
 
@@ -221,18 +256,18 @@
             <div class="md:col-span-5 space-y-3">
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Descriptor <span class="text-rose-500">*</span></label>
-                    <input type="text" class="sym-desc w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-white text-sm" placeholder="e.g. Sneezing / Cervical Stiffness">
+                    <input type="text" class="sym-desc w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 input-trigger bg-white text-sm" placeholder="e.g. Sneezing / Cervical Stiffness">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Likely Cause / Trigger</label>
-                    <input type="text" class="sym-cause w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-white text-sm" placeholder="e.g. High pollen count / Kinetic Load">
+                    <input type="text" class="sym-cause w-full p-2.5 border border-gray-300 rounded-lg focus:ring-2 input-trigger bg-white text-sm" placeholder="e.g. High pollen count / Kinetic Load">
                 </div>
 
                 <div class="grid grid-cols-2 gap-2">
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tag <span class="text-rose-500">*</span></label>
-                        <input type="text" maxlength="30" list="globalSymptomTags" class="sym-tag w-full p-2 border border-rose-300 rounded-lg bg-white focus:ring-2 focus:ring-rose-500 input-trigger font-bold text-rose-800 text-xs" placeholder="e.g. Illness" onchange="verifyMDMTag(this)">
+                        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tag</label>
+                        <input type="text" maxlength="30" list="globalSymptomTags" class="sym-tag w-full p-2 border rounded-lg bg-white focus:ring-2 input-trigger font-bold text-xs" placeholder="e.g. Illness" onchange="verifyMDMTag(this)">
                         <p class="text-[9px] font-bold text-rose-500 mt-0.5 tag-warning hidden"><i class="fa-solid fa-triangle-exclamation"></i> Unverified</p>
                     </div>
                     <div>
@@ -242,7 +277,7 @@
                 </div>
             </div>
 
-            <!-- INTEGRATED SPATIAL GRID: TOP-DOWN SLIDER + RADAR + ORANGE BALL -->
+            <!-- INTEGRATED SPATIAL GRID: TOP-DOWN SLIDER + RADAR + BURDEN BALL -->
             <div class="md:col-span-7 bg-white p-3.5 rounded-xl border border-slate-200 grid grid-cols-12 gap-3 items-center">
                 
                 <!-- TOP-DOWN SEVERITY SLIDER -->
@@ -251,16 +286,16 @@
                     <div class="vertical-slider-container">
                         <input type="range" min="0" max="10" value="0" class="sym-sacsi vertical-range-topdown input-trigger" oninput="handleSacsiRowInput(this)">
                     </div>
-                    <span class="text-[9px] font-bold text-rose-600 uppercase mt-1">Bot = 10</span>
+                    <span class="text-[9px] font-bold uppercase mt-1 sym-bot-label">Bot = 10</span>
                 </div>
 
-                <!-- SECTOR RADAR & ORANGE BALL -->
+                <!-- SECTOR RADAR & BURDEN BALL -->
                 <div class="col-span-9 flex flex-col items-center justify-between h-full space-y-2">
                     <div class="flex justify-between items-center w-full">
-                        <span class="sacsi-val-display bg-rose-100 text-rose-900 px-2 py-0.5 rounded font-black text-xs border border-rose-200">Severity: 0/10</span>
+                        <span class="sacsi-val-display px-2 py-0.5 rounded font-black text-xs border">Severity: 0/10</span>
                         <div class="flex items-center space-x-2">
                             <span class="text-[9px] font-bold uppercase text-slate-400">Burden:</span>
-                            <div class="orange-ball-element w-3 h-3 rounded-full"></div>
+                            <div class="burden-ball-element w-3 h-3 rounded-full"></div>
                         </div>
                     </div>
 
@@ -272,38 +307,39 @@
             </div>
         </div>
 
-        <!-- SEVERITY EXPLAINER BANNER (Half-Width, Positioned Directly Above Hexagon) -->
-        <div class="w-full md:w-1/2 mx-auto bg-slate-100 p-3 rounded-lg border border-slate-200 text-center shadow-inner">
-            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Severity Benchmark</span>
+        <!-- SEVERITY EXPLAINER BANNER -->
+        <div class="w-full md:w-1/2 mx-auto bg-slate-100 p-2.5 rounded-lg border border-slate-200 text-center shadow-inner">
+            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Severity Benchmark</span>
             <p class="sacsi-text-anchor text-xs italic text-slate-700 leading-tight">Baseline / Asymptomatic. Zero impairment, normal physiological function.</p>
         </div>
 
         <!-- THRESHOLD PERSISTENCE DRAWER (Severity > 0) -->
         <div class="threshold-drawer space-y-3">
-            <div class="bg-emerald-50/60 p-3 rounded-lg border border-emerald-200">
-                <label class="block text-[10px] font-bold uppercase tracking-wider text-emerald-800 mb-1.5">Persistence (Duration Band)</label>
-                <div class="grid grid-cols-5 gap-1.5 ordinal-bands">
-                    <button type="button" onclick="setRowPersistence(this, 1)" class="persistence-btn p-1.5 rounded-lg bg-emerald-600 text-white text-center border border-emerald-500 text-xs shadow-sm transition-all" data-val="1">
-                        <div class="font-bold text-[10px]">&lt;30m</div><div class="text-[7px] text-emerald-200">Transient</div>
+            <div class="bg-slate-100/80 p-3 rounded-lg border border-slate-200 flex flex-col items-end">
+                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1.5 w-full text-left">Persistence (Duration Band)</label>
+                <!-- PERSISTENCE BUTTONS RUN FROM CENTER TO RIGHT WITH RED BACKGROUND PALETTE -->
+                <div class="grid grid-cols-5 gap-1.5 ordinal-bands w-full md:w-3/4">
+                    <button type="button" onclick="setRowPersistence(this, 1)" class="persistence-btn p-1.5 rounded-lg bg-rose-600 text-white text-center border border-rose-500 text-xs shadow-sm transition-all" data-val="1">
+                        <div class="font-bold text-[10px]">&lt;30m</div><div class="text-[7px] text-rose-200">Transient</div>
                     </button>
                     <button type="button" onclick="setRowPersistence(this, 2)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="2">
-                        <div class="font-bold text-emerald-700 text-[10px]">30m-2h</div><div class="text-[7px] text-slate-400">Episodic</div>
+                        <div class="font-bold text-rose-700 text-[10px]">30m-2h</div><div class="text-[7px] text-slate-400">Episodic</div>
                     </button>
                     <button type="button" onclick="setRowPersistence(this, 3)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="3">
-                        <div class="font-bold text-emerald-700 text-[10px]">2h-6h</div><div class="text-[7px] text-slate-400">Extended</div>
+                        <div class="font-bold text-rose-700 text-[10px]">2h-6h</div><div class="text-[7px] text-slate-400">Extended</div>
                     </button>
                     <button type="button" onclick="setRowPersistence(this, 4)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="4">
-                        <div class="font-bold text-emerald-700 text-[10px]">6h-16h</div><div class="text-[7px] text-slate-400">Persistent</div>
+                        <div class="font-bold text-rose-700 text-[10px]">6h-16h</div><div class="text-[7px] text-slate-400">Persistent</div>
                     </button>
                     <button type="button" onclick="setRowPersistence(this, 5)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="5">
-                        <div class="font-bold text-emerald-700 text-[10px]">&gt;16h</div><div class="text-[7px] text-slate-400">Diurnal</div>
+                        <div class="font-bold text-rose-700 text-[10px]">&gt;16h</div><div class="text-[7px] text-slate-400">Diurnal</div>
                     </button>
                 </div>
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Context Notes & Comments</label>
-                <textarea class="sym-comment w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 input-trigger bg-white text-xs" rows="1.5" placeholder="Context, modifications, or extended notes..."></textarea>
+                <textarea class="sym-comment w-full p-2 border border-gray-300 rounded-lg focus:ring-2 input-trigger bg-white text-xs" rows="1.5" placeholder="Context, modifications, or extended notes..."></textarea>
             </div>
         </div>
     </div>
@@ -337,6 +373,18 @@ const AXES_NAMES = ["Cognitive", "Neurological", "Motor", "Autonomic", "Gastroin
 const AXIS_ICONS = ["🧠", "⚡", "🦾", "💧", "🍽️", "🎭"];
 const RADAR_CENTER = 160;
 const RADAR_RADIUS = 75;
+
+// HELPER: Format YYYY-MM-DD to Local DD/MM/YYYY
+function formatLocalDateDisplay(dateStr) {
+    if (!dateStr) return "--/--/----";
+    const parts = dateStr.split('-');
+    if (parts.length !== 3) return dateStr;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+function updateDateDisplay(dateStr) {
+    document.getElementById('record_date_display').innerText = formatLocalDateDisplay(dateStr);
+}
 
 function isDateEditable(dateStr) {
     const active = new Date(dateStr); active.setHours(0, 0, 0, 0);
@@ -489,12 +537,16 @@ function handleSacsiRowInput(slider) {
 function setRowPersistence(btn, val) {
     const row = btn.closest('.symptom-row');
     row.dataset.persistence_band = val;
+    const isHayfever = row.dataset.event_type === 'HAYFEVER';
+    const activeColorClass = isHayfever ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-rose-600 border-rose-500 text-white';
+    const inactiveColorClass = 'bg-white text-slate-700 hover:bg-slate-100 border-slate-300';
 
     row.querySelectorAll('.persistence-btn').forEach(b => {
-        b.className = "persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all";
-        b.querySelector('div:first-child').className = "font-bold text-emerald-700 text-[10px]";
+        b.className = `persistence-btn p-1.5 rounded-lg text-center border text-xs transition-all ${inactiveColorClass}`;
+        b.querySelector('div:first-child').className = `font-bold text-[10px] ${isHayfever ? 'text-emerald-700' : 'text-rose-700'}`;
     });
-    btn.className = "persistence-btn p-1.5 rounded-lg bg-emerald-600 text-white text-center border border-emerald-500 text-xs shadow-sm transition-all";
+    
+    btn.className = `persistence-btn p-1.5 rounded-lg text-center border text-xs shadow-sm transition-all ${activeColorClass}`;
     btn.querySelector('div:first-child').className = "font-bold text-white text-[10px]";
 
     updateRowCalculations(row);
@@ -515,9 +567,12 @@ function cycleRowAxis(row, axisName) {
 function renderRowRadar(row) {
     const svg = row.querySelector('.radar-svg');
     const axes = JSON.parse(row.dataset.breadth_axes || '{}');
+    const isHayfever = row.dataset.event_type === 'HAYFEVER';
+    const strokeHex = isHayfever ? '#10b981' : '#f97316';
+    const fillRgba = isHayfever ? 'rgba(16, 185, 129, ' : 'rgba(249, 115, 22, ';
+
     let html = '';
 
-    // Large Touch Wedge Sectors
     AXES_NAMES.forEach((name, i) => {
         let startAngle = (Math.PI / 3) * i - Math.PI / 2 - (Math.PI / 6);
         let endAngle = startAngle + (Math.PI / 3);
@@ -530,7 +585,6 @@ function renderRowRadar(row) {
         html += `<path d="${sectorPath}" fill="rgba(15, 23, 42, 0.01)" class="radar-sector-touch" onclick="cycleRowAxis(this.closest('.symptom-row'), '${name}')"><title>${name}</title></path>`;
     });
 
-    // Concentric Level Rings
     for (let r = 1; r <= 3; r++) {
         let radius = (RADAR_RADIUS / 3) * r;
         let pts = '';
@@ -541,7 +595,6 @@ function renderRowRadar(row) {
         html += `<polygon points="${pts}" class="radar-grid-ring" pointer-events="none"/>`;
     }
 
-    // Radial Axis Lines
     AXES_NAMES.forEach((name, i) => {
         let angle = (Math.PI / 3) * i - Math.PI / 2;
         let xEnd = RADAR_CENTER + RADAR_RADIUS * Math.cos(angle);
@@ -549,7 +602,6 @@ function renderRowRadar(row) {
         html += `<line x1="${RADAR_CENTER}" y1="${RADAR_CENTER}" x2="${xEnd}" y2="${yEnd}" class="radar-axis-line" pointer-events="none"/>`;
     });
 
-    // Active Lit Sector Fills & Poly Points
     let polyPts = '';
     AXES_NAMES.forEach((name, i) => {
         let angle = (Math.PI / 3) * i - Math.PI / 2;
@@ -568,20 +620,19 @@ function renderRowRadar(row) {
             let sy2 = RADAR_CENTER + r * Math.sin(endAngle);
             let litPath = `M ${RADAR_CENTER},${RADAR_CENTER} L ${sx1},${sy1} A ${r} ${r} 0 0 1 ${sx2},${sy2} Z`;
             let opacities = [0, 0.25, 0.5, 0.8];
-            html += `<path d="${litPath}" fill="rgba(249, 115, 22, ${opacities[val]})" stroke="#f97316" stroke-width="1" pointer-events="none"/>`;
+            html += `<path d="${litPath}" fill="${fillRgba}${opacities[val]})" stroke="${strokeHex}" stroke-width="1" pointer-events="none"/>`;
         }
     });
 
-    html += `<polygon points="${polyPts}" fill="rgba(249, 115, 22, 0.3)" stroke="#f97316" stroke-width="2" pointer-events="none"/>`;
+    html += `<polygon points="${polyPts}" fill="${fillRgba}0.3)" stroke="${strokeHex}" stroke-width="2" pointer-events="none"/>`;
 
-    // ENLARGED Vertex Legend Labels (Spatially Anchored)
     AXES_NAMES.forEach((name, i) => {
         let angle = (Math.PI / 3) * i - Math.PI / 2;
         let val = axes[name] || 0;
         let labelRadius = RADAR_RADIUS + 42;
         let lx = RADAR_CENTER + labelRadius * Math.cos(angle);
         let ly = RADAR_CENTER + labelRadius * Math.sin(angle);
-        let badgeColor = val > 0 ? "fill='#f97316'" : "fill='#334155'";
+        let badgeColor = val > 0 ? `fill='${strokeHex}'` : "fill='#334155'";
         let textColor = val > 0 ? "#ffffff" : "#f1f5f9";
 
         html += `<g transform="translate(${lx}, ${ly})" onclick="cycleRowAxis(this.closest('.symptom-row'), '${name}')" class="cursor-pointer">
@@ -598,6 +649,7 @@ function updateRowCalculations(row) {
     const s = parseInt(row.dataset.sacsi_depth || 0);
     const p = parseInt(row.dataset.persistence_band || 1);
     const axes = JSON.parse(row.dataset.breadth_axes || '{}');
+    const isHayfever = row.dataset.event_type === 'HAYFEVER';
     const bSum = Object.values(axes).reduce((a, b) => a + (parseInt(b) || 0), 0);
 
     let score = 0;
@@ -609,7 +661,7 @@ function updateRowCalculations(row) {
 
     row.querySelector('.score-display').innerText = `${score} / 100`;
 
-    const ball = row.querySelector('.orange-ball-element');
+    const ball = row.querySelector('.burden-ball-element');
     if (score === 0) {
         ball.style.width = '6px'; ball.style.height = '6px'; ball.style.boxShadow = 'none'; ball.style.opacity = '0.2';
     } else {
@@ -617,12 +669,19 @@ function updateRowCalculations(row) {
         ball.style.opacity = '1'; ball.style.width = size + 'px'; ball.style.height = size + 'px';
         let blur = 6 + (score / 100) * 20;
         let opacity = 0.4 + (score / 100) * 0.6;
-        ball.style.boxShadow = `0 0 ${blur}px rgba(249, 115, 22, ${opacity}), inset 0 0 ${blur/2}px rgba(254, 215, 170, ${opacity})`;
+        if (isHayfever) {
+            ball.style.boxShadow = `0 0 ${blur}px rgba(16, 185, 129, ${opacity}), inset 0 0 ${blur/2}px rgba(167, 243, 208, ${opacity})`;
+        } else {
+            ball.style.boxShadow = `0 0 ${blur}px rgba(249, 115, 22, ${opacity}), inset 0 0 ${blur/2}px rgba(254, 215, 170, ${opacity})`;
+        }
     }
 }
 
 function addSymptomRow(type = 'GENERAL', desc = '', cause = '', sacsi = 0, pBand = 1, breadthObj = {}, sbi = 0, treatments = '', notes = '', tag = '') {
-    const container = document.getElementById('symptomsContainer');
+    const isHayfever = type === 'HAYFEVER';
+    const targetContainerId = isHayfever ? 'hayfeverContainer' : 'symptomsContainer';
+    const container = document.getElementById(targetContainerId);
+    
     const template = document.getElementById('symptomRowTemplate');
     const clone = template.content.cloneNode(true);
     const row = clone.querySelector('.symptom-row');
@@ -633,8 +692,45 @@ function addSymptomRow(type = 'GENERAL', desc = '', cause = '', sacsi = 0, pBand
     row.dataset.breadth_axes = JSON.stringify(breadthObj);
     row.dataset.composite_sbi = sbi;
 
-    row.querySelector('.sym-desc').value = desc;
-    row.querySelector('.sym-cause').value = cause;
+    // Apply Palette Styling based on Event Type
+    if (isHayfever) {
+        row.className += " bg-emerald-50/90 border-emerald-300";
+        row.querySelector('.sym-header-border').className += " border-emerald-200";
+        row.querySelector('.score-display').className += " text-emerald-700 bg-emerald-100 border border-emerald-300";
+        row.querySelector('.sym-desc').className += " focus:ring-emerald-500";
+        row.querySelector('.sym-cause').className += " focus:ring-emerald-500";
+        row.querySelector('.sym-tag').className += " border-emerald-300 text-emerald-800 focus:ring-emerald-500";
+        row.querySelector('.sym-comment').className += " focus:ring-emerald-500";
+        row.querySelector('.sym-bot-label').className += " text-emerald-600";
+        row.querySelector('.sacsi-val-display').className += " bg-emerald-100 text-emerald-900 border-emerald-200";
+        row.querySelector('.burden-ball-element').className += " green-ball-element";
+    } else {
+        row.className += " bg-slate-50 border-slate-300";
+        row.querySelector('.sym-header-border').className += " border-slate-200";
+        row.querySelector('.score-display').className += " text-amber-600 bg-amber-100 border border-amber-300";
+        row.querySelector('.sym-desc').className += " focus:ring-rose-500";
+        row.querySelector('.sym-cause').className += " focus:ring-rose-500";
+        row.querySelector('.sym-tag').className += " border-rose-300 text-rose-800 focus:ring-rose-500";
+        row.querySelector('.sym-comment').className += " focus:ring-rose-500";
+        row.querySelector('.sym-bot-label').className += " text-rose-600";
+        row.querySelector('.sacsi-val-display').className += " bg-rose-100 text-rose-900 border-rose-200";
+        row.querySelector('.burden-ball-element').className += " orange-ball-element";
+    }
+
+    const badge = row.querySelector('.event-badge');
+    badge.innerText = type;
+    badge.className = isHayfever ? 
+        "event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded bg-emerald-600 text-white border border-emerald-700 shadow-sm" :
+        "event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded bg-rose-100 text-rose-800 border border-rose-300";
+
+    let initialCause = cause;
+    if (isHayfever && !initialCause) {
+        let lvl = document.getElementById('pollen_count_level').value;
+        initialCause = lvl ? `${lvl} pollen count` : "Pollen Exposure";
+    }
+
+    row.querySelector('.sym-desc').value = desc || (isHayfever ? "Hayfever Episode" : "");
+    row.querySelector('.sym-cause').value = initialCause;
     row.querySelector('.sym-tag').value = tag;
     row.querySelector('.sym-treatments').value = treatments;
     row.querySelector('.sym-comment').value = notes;
@@ -793,6 +889,7 @@ async function handleDateSwitch(daysOffset, isDirectInput = false) {
         currentDate.setDate(currentDate.getDate() + daysOffset);
         dateInput.valueAsDate = currentDate;
     }
+    updateDateDisplay(dateInput.value);
     renderDateFromCache(dateInput.value);
 }
 
@@ -821,6 +918,8 @@ function updateGlobalTagAutofill() {
 function renderDateFromCache(dateStr) {
     isProgrammaticUpdate = true;
     let targetDateString = new Date(dateStr).toDateString();
+    updateDateDisplay(dateStr);
+
     document.getElementById('ambient_temp_celsius').value = '';
     document.getElementById('sleep_debt_manual').value = '';
     document.getElementById('daily_feedback').value = '';
@@ -831,6 +930,7 @@ function renderDateFromCache(dateStr) {
     document.getElementById('ui_overall_pollen').innerText = 'Awaiting Data...';
     document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI('');
     document.getElementById('pollenChartContainer').classList.add('hidden');
+    document.getElementById('hayfeverContainer').innerHTML = '';
     document.getElementById('symptomsContainer').innerHTML = '';
     document.getElementById('golf_focus').value = '';
 
@@ -918,7 +1018,10 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.getElementById('record_date').valueAsDate = new Date();
+    const todayIso = new Date().toISOString().split('T')[0];
+    document.getElementById('record_date').value = todayIso;
+    updateDateDisplay(todayIso);
+
     document.querySelectorAll('.input-trigger').forEach(input => {
         input.addEventListener('change', queueOptimisticSync);
         input.addEventListener('input', queueOptimisticSync);
@@ -945,11 +1048,11 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
         .then(reg => console.log('Service Worker Registered!', reg.scope))
-        .catch(err => console.error('Service Worker Registration Failed!', err));
+        .catch(err => console.warn('Service Worker Disabled in this Origin:', err));
     });
 }
 </script>
