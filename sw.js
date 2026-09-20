@@ -1,5 +1,5 @@
 // Bumped to v1.9 to trigger the update
-const CACHE_NAME = 'healthspan-v5.0';
+const CACHE_NAME = 'healthspan-v5.3';
 const ASSETS = [
   '/healthspan-tracker/index.html',
   '/healthspan-tracker/manifest.json',
