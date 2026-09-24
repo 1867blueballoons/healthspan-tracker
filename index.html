@@ -10,8 +10,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Healthspan">
-    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
-    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+    <!-- Updated to relative paths -->
+    <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="./assets/icons/icon-192.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -28,42 +29,6 @@
         }
         #syncToast { transition: opacity 0.3s ease; }
 
-        /* Top-Down Vertical Severity Slider (0 at Top, 10 at Bottom) */
-        .vertical-slider-container { display: flex; flex-direction: column; align-items: center; position: relative; height: 210px; justify-content: center; }
-        .vertical-range-topdown {
-            writing-mode: bt-lr;
-            -webkit-appearance: slider-vertical;
-            transform: rotate(180deg);
-            width: 14px;
-            height: 190px;
-            background: #cbd5e1;
-            outline: none;
-            border-radius: 6px;
-            touch-action: none;
-            cursor: pointer;
-        }
-
-        .threshold-drawer { transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease-in-out; max-height: 0; opacity: 0; overflow: hidden; }
-        .threshold-drawer.open { max-height: 800px; opacity: 1; }
-
-        .radar-sector-touch { cursor: pointer; transition: fill 0.2s, opacity 0.2s; }
-        .radar-sector-touch:hover { fill: rgba(16, 185, 129, 0.15); }
-        .radar-axis-line { stroke: rgba(148, 163, 184, 0.4); stroke-dasharray: 3 3; }
-        .radar-grid-ring { fill: none; stroke: rgba(148, 163, 184, 0.3); }
-
-        /* Burden Indicator Balls */
-        .green-ball-element {
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            background: radial-gradient(circle at 30% 30%, #a7f3d0 0%, #10b981 50%, #047857 100%);
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
-        }
-        .orange-ball-element {
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            background: radial-gradient(circle at 30% 30%, #fed7aa 0%, #f97316 50%, #c2410c 100%);
-            box-shadow: 0 0 20px rgba(249, 115, 22, 0.5);
-        }
-
-        /* Sticky Date Header Styling */
         .sticky-date-bar {
             position: sticky;
             top: 1rem;
@@ -90,7 +55,7 @@
         <h1 class="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 tracking-tight drop-shadow-lg">
             Healthspan Metrics
         </h1>
-        <p class="text-indigo-200 mt-2 font-medium">Daily Tracking Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v5.3</span></p>
+        <p class="text-indigo-200 mt-2 font-medium">Daily Tracking Ecosystem <span class="bg-indigo-600 text-white text-xs px-2 py-1 rounded ml-2 align-middle">v5.7</span></p>
     </header>
 
     <div id="loadingState" class="flex flex-col items-center justify-center py-12">
@@ -107,7 +72,6 @@
                 <div class="text-center">
                     <label class="block text-xs font-bold text-yellow-800 uppercase tracking-wide">Active Record Date</label>
                     <div class="flex items-center justify-center space-x-2">
-                        <!-- Custom UK/Local Date Format Display (dd/mm/yyyy) -->
                         <span id="record_date_display" class="text-yellow-900 text-2xl font-black tracking-tight">--/--/----</span>
                         <input type="date" id="record_date" required class="sr-only" onchange="handleDateSwitch(0, true)">
                         <button type="button" onclick="document.getElementById('record_date').showPicker()" class="text-yellow-800 hover:text-yellow-900 text-sm font-bold bg-yellow-200 p-1.5 rounded-md border border-yellow-400">
@@ -153,7 +117,7 @@
             </div>
         </div>
 
-        <!-- SECTION 2: UNIFIED ENVIRONMENTAL & HAYFEVER PANEL (Light Green Theme) -->
+        <!-- SECTION 2: UNIFIED ENVIRONMENTAL & HAYFEVER PANEL -->
         <div id="section_hayfever" class="glass-card p-6 border-t-4 border-emerald-500 bg-emerald-50/80 space-y-6">
             <div class="flex justify-between items-center border-b border-emerald-200 pb-3">
                 <div>
@@ -165,7 +129,6 @@
                 </button>
             </div>
 
-            <!-- Location & Pollen Context Sub-Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="bg-white/90 p-4 rounded-xl border border-emerald-200 flex flex-col justify-between shadow-sm">
                     <div>
@@ -209,7 +172,6 @@
                 </div>
             </div>
 
-            <!-- Dynamic Hayfever Episode Rows Container -->
             <div id="hayfeverContainer" class="space-y-4"></div>
         </div>
 
@@ -238,17 +200,13 @@
 
 <template id="symptomRowTemplate">
     <datalist id="globalSymptomTags"></datalist>
-    <div class="symptom-row sacsi-container p-5 rounded-xl border-2 relative shadow-md space-y-4 transition-all">
+    <div class="symptom-row p-5 rounded-xl border-2 relative shadow-md space-y-4 transition-all">
         <button type="button" onclick="this.closest('.symptom-row').remove(); queueOptimisticSync();" class="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-2xl font-bold px-2 z-10">&times;</button>
         
         <div class="flex justify-between items-center pr-8 border-b pb-2 sym-header-border">
             <div class="flex items-center space-x-2">
                 <span class="event-badge text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded">LOG</span>
                 <span class="text-xs font-bold text-slate-500 uppercase">Symptom Vector</span>
-            </div>
-            <div class="flex items-center space-x-2">
-                <span class="text-[10px] font-bold text-slate-400 uppercase">Systemic Burden:</span>
-                <span class="score-display text-xs font-black px-2 py-0.5 rounded">0 / 100</span>
             </div>
         </div>
 
@@ -272,80 +230,27 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Treatments Used</label>
-                        <input type="text" class="sym-treatments w-full p-2 border border-gray-300 rounded-lg bg-white text-xs input-trigger" placeholder="e.g.ankle support">
+                        <input type="text" class="sym-treatments w-full p-2 border border-gray-300 rounded-lg bg-white text-xs input-trigger" placeholder="e.g. ankle support">
                     </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Context Notes & Comments</label>
+                    <textarea class="sym-comment w-full p-2 border border-gray-300 rounded-lg focus:ring-2 input-trigger bg-white text-xs" rows="2" placeholder="Context, modifications, or extended notes..."></textarea>
                 </div>
             </div>
 
-            <!-- INTEGRATED SPATIAL GRID: TOP-DOWN SLIDER + RADAR + BURDEN BALL -->
-            <div class="md:col-span-7 bg-white p-3.5 rounded-xl border border-slate-200 grid grid-cols-12 gap-3 items-center">
-                
-                <!-- TOP-DOWN SEVERITY SLIDER -->
-                <div class="col-span-3 flex flex-col items-center justify-center bg-slate-100 p-2 rounded-lg border border-slate-200">
-                    <span class="text-[9px] font-bold text-slate-400 uppercase mb-1">Top = 0</span>
-                    <div class="vertical-slider-container">
-                        <input type="range" min="0" max="10" value="0" class="sym-sacsi vertical-range-topdown input-trigger" oninput="handleSacsiRowInput(this)">
-                    </div>
-                    <span class="text-[9px] font-bold uppercase mt-1 sym-bot-label">Bot = 10</span>
-                </div>
-
-                <!-- SECTOR RADAR & BURDEN BALL -->
-                <div class="col-span-9 flex flex-col items-center justify-between h-full space-y-2">
-                    <div class="flex justify-between items-center w-full">
-                        <span class="sacsi-val-display px-2 py-0.5 rounded font-black text-xs border">Severity: 0/10</span>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-[9px] font-bold uppercase text-slate-400">Burden:</span>
-                            <div class="burden-ball-element w-3 h-3 rounded-full"></div>
-                        </div>
-                    </div>
-
-                    <div class="relative flex justify-center items-center w-full overflow-hidden">
-                        <svg class="radar-svg select-none" width="250" height="220" viewBox="0 0 320 280"></svg>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- SEVERITY EXPLAINER BANNER -->
-        <div class="w-full md:w-1/2 mx-auto bg-slate-100 p-2.5 rounded-lg border border-slate-200 text-center shadow-inner">
-            <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Severity Benchmark</span>
-            <p class="sacsi-text-anchor text-xs italic text-slate-700 leading-tight">Baseline / Asymptomatic. Zero impairment, normal physiological function.</p>
-        </div>
-
-        <!-- THRESHOLD PERSISTENCE DRAWER (Severity > 0) -->
-        <div class="threshold-drawer space-y-3">
-            <div class="bg-slate-100/80 p-3 rounded-lg border border-slate-200 flex flex-col items-end">
-                <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1.5 w-full text-left">Persistence (Duration Band)</label>
-                <!-- PERSISTENCE BUTTONS RUN FROM CENTER TO RIGHT WITH RED BACKGROUND PALETTE -->
-                <div class="grid grid-cols-5 gap-1.5 ordinal-bands w-full md:w-3/4">
-                    <button type="button" onclick="setRowPersistence(this, 1)" class="persistence-btn p-1.5 rounded-lg bg-rose-600 text-white text-center border border-rose-500 text-xs shadow-sm transition-all" data-val="1">
-                        <div class="font-bold text-[10px]">&lt;30m</div><div class="text-[7px] text-rose-200">Transient</div>
-                    </button>
-                    <button type="button" onclick="setRowPersistence(this, 2)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="2">
-                        <div class="font-bold text-rose-700 text-[10px]">30m-2h</div><div class="text-[7px] text-slate-400">Episodic</div>
-                    </button>
-                    <button type="button" onclick="setRowPersistence(this, 3)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="3">
-                        <div class="font-bold text-rose-700 text-[10px]">2h-6h</div><div class="text-[7px] text-slate-400">Extended</div>
-                    </button>
-                    <button type="button" onclick="setRowPersistence(this, 4)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="4">
-                        <div class="font-bold text-rose-700 text-[10px]">6h-16h</div><div class="text-[7px] text-slate-400">Persistent</div>
-                    </button>
-                    <button type="button" onclick="setRowPersistence(this, 5)" class="persistence-btn p-1.5 rounded-lg bg-white text-slate-700 hover:bg-slate-100 text-center border border-slate-300 text-xs transition-all" data-val="5">
-                        <div class="font-bold text-rose-700 text-[10px]">&gt;16h</div><div class="text-[7px] text-slate-400">Diurnal</div>
-                    </button>
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Context Notes & Comments</label>
-                <textarea class="sym-comment w-full p-2 border border-gray-300 rounded-lg focus:ring-2 input-trigger bg-white text-xs" rows="1.5" placeholder="Context, modifications, or extended notes..."></textarea>
+            <div class="md:col-span-7">
+                <sacsi-vector-panel class="sym-sacsi-panel"></sacsi-vector-panel>
             </div>
         </div>
     </div>
 </template>
 
-<script>
+<script type="module">
+import { fetchPollenMetrics } from './assets/js/pollenService.js';
+import { SacsiVectorPanel } from './assets/js/sacsiVectorPanel.js';
+
 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwNwr_7iZJuOVdT9u1xHNy9sYEKHjFyJtZ6Q-pDui-Y4qTpLQdi4NT2NiUcoBxwUFDgmA/exec';
 let isProgrammaticUpdate = false;
 let currentRecordOriginalPollen = { loc: '', lvl: '', spec: '' };
@@ -355,26 +260,6 @@ let debounceTimer = null;
 let isSyncing = false;
 let hasPendingChanges = false;
 
-const SEVERITY_DEFINITIONS = {
-    0: "Baseline / Asymptomatic. Zero impairment, normal physiological function.",
-    1: "Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted. Zero routine modification.",
-    2: "Sub-Clinical / Nuisance. Noticeable, but entirely ignorable if distracted. Zero routine modification.",
-    3: "Distracting / Moderate. Continuous cognitive load. You cannot ignore it, but you push through.",
-    4: "Distracting / Moderate. Continuous cognitive load. You cannot ignore it, but you push through.",
-    5: "Systemic Friction. Forces active behavioral modification: take analgesic or scale back workout.",
-    6: "Systemic Friction. Forces active behavioral modification: take analgesic or scale back workout.",
-    7: "Severe Impairment. Dictates your day. Disrupts physiological baselines: wakes you, cancels training.",
-    8: "Severe Impairment. Dictates your day. Disrupts physiological baselines: wakes you, cancels training.",
-    9: "Acute / Debilitating. Complete functional breakdown. Bedridden, incapacitated.",
-    10: "Acute / Debilitating. Complete functional breakdown. Bedridden, incapacitated."
-};
-
-const AXES_NAMES = ["Cognitive", "Neurological", "Motor", "Autonomic", "Gastrointestinal", "Affective"];
-const AXIS_ICONS = ["🧠", "⚡", "🦾", "💧", "🍽️", "🎭"];
-const RADAR_CENTER = 160;
-const RADAR_RADIUS = 75;
-
-// HELPER: Format YYYY-MM-DD to Local DD/MM/YYYY
 function formatLocalDateDisplay(dateStr) {
     if (!dateStr) return "--/--/----";
     const parts = dateStr.split('-');
@@ -419,34 +304,16 @@ function parsePollenForUI(specificsString) {
     return `<span title="Tree Pollen">🌲 ${tVal}</span> &nbsp;|&nbsp; <span title="Grass Pollen">🌾 ${gVal}</span> &nbsp;|&nbsp; <span title="Weed Pollen">🌼 ${wVal}</span>`;
 }
 
-function hasValidPollenValues(hourly) {
-    if (!hourly) return false;
-    const keys = ['alder_pollen', 'birch_pollen', 'grass_pollen', 'mugwort_pollen', 'ragweed_pollen'];
-    return keys.some(key => Array.isArray(hourly[key]) && hourly[key].some(val => val !== null && val !== undefined));
-}
-
-async function getCoordinates(locationName) {
-    const cleanName = locationName.trim();
-    if (!cleanName) throw new Error("No location provided");
-    const cacheKey = 'geo_' + cleanName.toLowerCase();
-    const cached = localStorage.getItem(cacheKey);
-    if (cached) return JSON.parse(cached);
-
-    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cleanName)}&count=1&language=en&format=json`);
-    if (!res.ok) throw new Error("Geocoding service unavailable");
-    const data = await res.json();
-    if (!data.results || data.results.length === 0) throw new Error("Location not found");
-    const coords = { lat: data.results[0].latitude, lon: data.results[0].longitude };
-    localStorage.setItem(cacheKey, JSON.stringify(coords));
-    return coords;
-}
-
-async function fetchLivePollenData(isAuto = false) {
+window.fetchLivePollenData = async function(isAuto = false) {
     const locationName = document.getElementById('postcode_prefix').value;
     const helperText = document.getElementById('locationHelperText');
     const activeDateStr = document.getElementById('record_date').value;
     const isEditable = isDateEditable(activeDateStr);
-    if (!locationName) { document.getElementById('ui_overall_pollen').innerText = "Enter Location First"; return; }
+    
+    if (!locationName) { 
+        document.getElementById('ui_overall_pollen').innerText = "Enter Location First"; 
+        return; 
+    }
 
     document.getElementById('pollenLoader').classList.remove('hidden');
     if(!isAuto) helperText.innerText = "Resolving location...";
@@ -454,49 +321,25 @@ async function fetchLivePollenData(isAuto = false) {
     document.getElementById('pollenChartContainer').classList.add('hidden');
 
     try {
-        const { lat, lon } = await getCoordinates(locationName);
-        if (lat < 30 || lat > 72 || lon < -25 || lon > 45) throw new Error("Pollen model is restricted to European regions.");
+        const metrics = await fetchPollenMetrics(locationName, activeDateStr);
 
-        const isoDate = new Date(activeDateStr).toISOString().split('T')[0];
-        const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,ragweed_pollen&start_date=${isoDate}&end_date=${isoDate}&timezone=Europe%2FLondon`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (!data.hourly || !hasValidPollenValues(data.hourly)) throw new Error("No data currently available for this location");
-        let maxTree = 0, maxGrass = 0, maxWeed = 0;
-        let hourlyTotals = [];
-        let maxHourlyTotal = 1;
-
-        for (let i = 0; i < 24; i++) {
-            let tree = (data.hourly.alder_pollen[i] || 0) + (data.hourly.birch_pollen[i] || 0);
-            let grass = (data.hourly.grass_pollen[i] || 0);
-            let weed = (data.hourly.mugwort_pollen[i] || 0) + (data.hourly.ragweed_pollen[i] || 0);
-            if (tree > maxTree) maxTree = tree; if (grass > maxGrass) maxGrass = grass; if (weed > maxWeed) maxWeed = weed;
-            let hTotal = tree + grass + weed; hourlyTotals.push(hTotal);
-            if (hTotal > maxHourlyTotal) maxHourlyTotal = hTotal;
-        }
-
-        const getLevel = (val, modThresh, highThresh) => val >= highThresh ? "High" : val >= modThresh ? "Moderate" : "Low";
-        const treeLvl = getLevel(maxTree, 15, 90), grassLvl = getLevel(maxGrass, 10, 50), weedLvl = getLevel(maxWeed, 10, 50);
-        const levels = [treeLvl, grassLvl, weedLvl];
-        let overall = levels.includes("High") ? "High" : levels.includes("Moderate") ? "Moderate" : "Low";
-        const specificsStr = `Tree: ${treeLvl} | Grass: ${grassLvl} | Weed: ${weedLvl}`;
-
-        document.getElementById('pollen_count_level').value = overall;
-        document.getElementById('specific_pollens').value = specificsStr;
-        document.getElementById('hourly_pollen_data').value = JSON.stringify(hourlyTotals);
-        document.getElementById('ui_overall_pollen').innerText = `Overall: ${overall}`;
-        document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(specificsStr);
-        const minHourlyTotal = Math.min(...hourlyTotals);
-        document.getElementById('chartMax').innerText = `Max: ${Math.round(maxHourlyTotal)}`;
-        document.getElementById('chartMin').innerText = `Min: ${Math.round(minHourlyTotal)}`;
+        document.getElementById('pollen_count_level').value = metrics.overallLevel;
+        document.getElementById('specific_pollens').value = metrics.specificsString;
+        document.getElementById('hourly_pollen_data').value = JSON.stringify(metrics.hourlyTotals);
+        document.getElementById('ui_overall_pollen').innerText = `Overall: ${metrics.overallLevel}`;
+        document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI(metrics.specificsString);
+        
+        document.getElementById('chartMax').innerText = `Max: ${Math.round(metrics.maxHourlyTotal)}`;
+        document.getElementById('chartMin').innerText = `Min: ${Math.round(metrics.minHourlyTotal)}`;
 
         const chart = document.getElementById('pollenChart');
         chart.innerHTML = '';
-        hourlyTotals.forEach((total) => {
+        metrics.hourlyTotals.forEach((total) => {
             let color = total >= 50 ? '#f87171' : total >= 10 ? '#fbbf24' : '#34d399';
-            let pct = Math.max(5, (total / Math.max(maxHourlyTotal, 1)) * 100);
+            let pct = Math.max(5, (total / Math.max(metrics.maxHourlyTotal, 1)) * 100);
             chart.innerHTML += `<div class="flex-1 rounded-t-sm transition-all hover:opacity-75" style="background-color: ${color}; height: ${pct}%; min-height: 2px;"></div>`;
         });
+        
         document.getElementById('pollenChartContainer').classList.remove('hidden');
         helperText.innerText = isEditable ? "Type any European city to update coordinates." : "Historical view. Location changes will not be saved.";
 
@@ -511,173 +354,12 @@ async function fetchLivePollenData(isAuto = false) {
             document.getElementById('ui_specific_pollens').innerHTML = parsePollenForUI('');
             document.getElementById('pollenChartContainer').classList.add('hidden');
         }
-    } finally { document.getElementById('pollenLoader').classList.add('hidden'); }
-}
-
-function handleSacsiRowInput(slider) {
-    const row = slider.closest('.symptom-row');
-    const depth = parseInt(slider.value);
-    row.dataset.sacsi_depth = depth;
-
-    row.querySelector('.sacsi-val-display').innerText = `Severity: ${depth}/10`;
-    row.querySelector('.sacsi-text-anchor').innerText = SEVERITY_DEFINITIONS[depth];
-
-    const drawer = row.querySelector('.threshold-drawer');
-    if (depth > 0) {
-        drawer.classList.add('open');
-    } else {
-        drawer.classList.remove('open');
-        row.dataset.persistence_band = 1;
+    } finally { 
+        document.getElementById('pollenLoader').classList.add('hidden'); 
     }
+};
 
-    updateRowCalculations(row);
-    if (!isProgrammaticUpdate) queueOptimisticSync();
-}
-
-function setRowPersistence(btn, val) {
-    const row = btn.closest('.symptom-row');
-    row.dataset.persistence_band = val;
-    const isHayfever = row.dataset.event_type === 'HAYFEVER';
-    const activeColorClass = isHayfever ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-rose-600 border-rose-500 text-white';
-    const inactiveColorClass = 'bg-white text-slate-700 hover:bg-slate-100 border-slate-300';
-
-    row.querySelectorAll('.persistence-btn').forEach(b => {
-        b.className = `persistence-btn p-1.5 rounded-lg text-center border text-xs transition-all ${inactiveColorClass}`;
-        b.querySelector('div:first-child').className = `font-bold text-[10px] ${isHayfever ? 'text-emerald-700' : 'text-rose-700'}`;
-    });
-    
-    btn.className = `persistence-btn p-1.5 rounded-lg text-center border text-xs shadow-sm transition-all ${activeColorClass}`;
-    btn.querySelector('div:first-child').className = "font-bold text-white text-[10px]";
-
-    updateRowCalculations(row);
-    if (!isProgrammaticUpdate) queueOptimisticSync();
-}
-
-function cycleRowAxis(row, axisName) {
-    let axes = JSON.parse(row.dataset.breadth_axes || '{}');
-    let cur = axes[axisName] || 0;
-    axes[axisName] = (cur + 1) % 4;
-    row.dataset.breadth_axes = JSON.stringify(axes);
-
-    renderRowRadar(row);
-    updateRowCalculations(row);
-    if (!isProgrammaticUpdate) queueOptimisticSync();
-}
-
-function renderRowRadar(row) {
-    const svg = row.querySelector('.radar-svg');
-    const axes = JSON.parse(row.dataset.breadth_axes || '{}');
-    const isHayfever = row.dataset.event_type === 'HAYFEVER';
-    const strokeHex = isHayfever ? '#10b981' : '#f97316';
-    const fillRgba = isHayfever ? 'rgba(16, 185, 129, ' : 'rgba(249, 115, 22, ';
-
-    let html = '';
-
-    AXES_NAMES.forEach((name, i) => {
-        let startAngle = (Math.PI / 3) * i - Math.PI / 2 - (Math.PI / 6);
-        let endAngle = startAngle + (Math.PI / 3);
-        let x1 = RADAR_CENTER + (RADAR_RADIUS + 15) * Math.cos(startAngle);
-        let y1 = RADAR_CENTER + (RADAR_RADIUS + 15) * Math.sin(startAngle);
-        let x2 = RADAR_CENTER + (RADAR_RADIUS + 15) * Math.cos(endAngle);
-        let y2 = RADAR_CENTER + (RADAR_RADIUS + 15) * Math.sin(endAngle);
-
-        let sectorPath = `M ${RADAR_CENTER},${RADAR_CENTER} L ${x1},${y1} A ${RADAR_RADIUS + 15} ${RADAR_RADIUS + 15} 0 0 1 ${x2},${y2} Z`;
-        html += `<path d="${sectorPath}" fill="rgba(15, 23, 42, 0.01)" class="radar-sector-touch" onclick="cycleRowAxis(this.closest('.symptom-row'), '${name}')"><title>${name}</title></path>`;
-    });
-
-    for (let r = 1; r <= 3; r++) {
-        let radius = (RADAR_RADIUS / 3) * r;
-        let pts = '';
-        for (let i = 0; i < 6; i++) {
-            let angle = (Math.PI / 3) * i - Math.PI / 2;
-            pts += `${RADAR_CENTER + radius * Math.cos(angle)},${RADAR_CENTER + radius * Math.sin(angle)} `;
-        }
-        html += `<polygon points="${pts}" class="radar-grid-ring" pointer-events="none"/>`;
-    }
-
-    AXES_NAMES.forEach((name, i) => {
-        let angle = (Math.PI / 3) * i - Math.PI / 2;
-        let xEnd = RADAR_CENTER + RADAR_RADIUS * Math.cos(angle);
-        let yEnd = RADAR_CENTER + RADAR_RADIUS * Math.sin(angle);
-        html += `<line x1="${RADAR_CENTER}" y1="${RADAR_CENTER}" x2="${xEnd}" y2="${yEnd}" class="radar-axis-line" pointer-events="none"/>`;
-    });
-
-    let polyPts = '';
-    AXES_NAMES.forEach((name, i) => {
-        let angle = (Math.PI / 3) * i - Math.PI / 2;
-        let val = axes[name] || 0;
-        let r = (RADAR_RADIUS / 3) * val;
-        let x = RADAR_CENTER + r * Math.cos(angle);
-        let y = RADAR_CENTER + r * Math.sin(angle);
-        polyPts += `${x},${y} `;
-
-        if (val > 0) {
-            let startAngle = angle - (Math.PI / 6);
-            let endAngle = angle + (Math.PI / 6);
-            let sx1 = RADAR_CENTER + r * Math.cos(startAngle);
-            let sy1 = RADAR_CENTER + r * Math.sin(startAngle);
-            let sx2 = RADAR_CENTER + r * Math.cos(endAngle);
-            let sy2 = RADAR_CENTER + r * Math.sin(endAngle);
-            let litPath = `M ${RADAR_CENTER},${RADAR_CENTER} L ${sx1},${sy1} A ${r} ${r} 0 0 1 ${sx2},${sy2} Z`;
-            let opacities = [0, 0.25, 0.5, 0.8];
-            html += `<path d="${litPath}" fill="${fillRgba}${opacities[val]})" stroke="${strokeHex}" stroke-width="1" pointer-events="none"/>`;
-        }
-    });
-
-    html += `<polygon points="${polyPts}" fill="${fillRgba}0.3)" stroke="${strokeHex}" stroke-width="2" pointer-events="none"/>`;
-
-    AXES_NAMES.forEach((name, i) => {
-        let angle = (Math.PI / 3) * i - Math.PI / 2;
-        let val = axes[name] || 0;
-        let labelRadius = RADAR_RADIUS + 42;
-        let lx = RADAR_CENTER + labelRadius * Math.cos(angle);
-        let ly = RADAR_CENTER + labelRadius * Math.sin(angle);
-        let badgeColor = val > 0 ? `fill='${strokeHex}'` : "fill='#334155'";
-        let textColor = val > 0 ? "#ffffff" : "#f1f5f9";
-
-        html += `<g transform="translate(${lx}, ${ly})" onclick="cycleRowAxis(this.closest('.symptom-row'), '${name}')" class="cursor-pointer">
-            <rect x="-41" y="-15" width="82" height="30" rx="7" ${badgeColor} opacity="0.95" />
-            <text x="0" y="-1" text-anchor="middle" font-size="11" font-weight="bold" fill="${textColor}">${AXIS_ICONS[i]} ${name}</text>
-            <text x="0" y="10" text-anchor="middle" font-size="10" font-weight="black" fill="${textColor}">Lvl ${val}</text>
-        </g>`;
-    });
-
-    svg.innerHTML = html;
-}
-
-function updateRowCalculations(row) {
-    const s = parseInt(row.dataset.sacsi_depth || 0);
-    const p = parseInt(row.dataset.persistence_band || 1);
-    const axes = JSON.parse(row.dataset.breadth_axes || '{}');
-    const isHayfever = row.dataset.event_type === 'HAYFEVER';
-    const bSum = Object.values(axes).reduce((a, b) => a + (parseInt(b) || 0), 0);
-
-    let score = 0;
-    if (s > 0) {
-        let raw = (s * 8) + (p * 3) + (bSum * 3);
-        score = Math.max(5, Math.min(100, Math.round((raw / 135) * 100)));
-    }
-    row.dataset.composite_sbi = score;
-
-    row.querySelector('.score-display').innerText = `${score} / 100`;
-
-    const ball = row.querySelector('.burden-ball-element');
-    if (score === 0) {
-        ball.style.width = '6px'; ball.style.height = '6px'; ball.style.boxShadow = 'none'; ball.style.opacity = '0.2';
-    } else {
-        let size = 12 + (score / 100) * 45;
-        ball.style.opacity = '1'; ball.style.width = size + 'px'; ball.style.height = size + 'px';
-        let blur = 6 + (score / 100) * 20;
-        let opacity = 0.4 + (score / 100) * 0.6;
-        if (isHayfever) {
-            ball.style.boxShadow = `0 0 ${blur}px rgba(16, 185, 129, ${opacity}), inset 0 0 ${blur/2}px rgba(167, 243, 208, ${opacity})`;
-        } else {
-            ball.style.boxShadow = `0 0 ${blur}px rgba(249, 115, 22, ${opacity}), inset 0 0 ${blur/2}px rgba(254, 215, 170, ${opacity})`;
-        }
-    }
-}
-
-function addSymptomRow(type = 'GENERAL', desc = '', cause = '', sacsi = 0, pBand = 1, breadthObj = {}, sbi = 0, treatments = '', notes = '', tag = '') {
+window.addSymptomRow = function(type = 'GENERAL', desc = '', cause = '', sacsi = 0, pBand = 1, breadthObj = {}, sbi = 0, treatments = '', notes = '', tag = '') {
     const isHayfever = type === 'HAYFEVER';
     const targetContainerId = isHayfever ? 'hayfeverContainer' : 'symptomsContainer';
     const container = document.getElementById(targetContainerId);
@@ -687,34 +369,21 @@ function addSymptomRow(type = 'GENERAL', desc = '', cause = '', sacsi = 0, pBand
     const row = clone.querySelector('.symptom-row');
 
     row.dataset.event_type = type;
-    row.dataset.sacsi_depth = sacsi;
-    row.dataset.persistence_band = pBand;
-    row.dataset.breadth_axes = JSON.stringify(breadthObj);
-    row.dataset.composite_sbi = sbi;
 
-    // Apply Palette Styling based on Event Type
     if (isHayfever) {
         row.className += " bg-emerald-50/90 border-emerald-300";
         row.querySelector('.sym-header-border').className += " border-emerald-200";
-        row.querySelector('.score-display').className += " text-emerald-700 bg-emerald-100 border border-emerald-300";
         row.querySelector('.sym-desc').className += " focus:ring-emerald-500";
         row.querySelector('.sym-cause').className += " focus:ring-emerald-500";
         row.querySelector('.sym-tag').className += " border-emerald-300 text-emerald-800 focus:ring-emerald-500";
         row.querySelector('.sym-comment').className += " focus:ring-emerald-500";
-        row.querySelector('.sym-bot-label').className += " text-emerald-600";
-        row.querySelector('.sacsi-val-display').className += " bg-emerald-100 text-emerald-900 border-emerald-200";
-        row.querySelector('.burden-ball-element').className += " green-ball-element";
     } else {
         row.className += " bg-slate-50 border-slate-300";
         row.querySelector('.sym-header-border').className += " border-slate-200";
-        row.querySelector('.score-display').className += " text-amber-600 bg-amber-100 border border-amber-300";
         row.querySelector('.sym-desc').className += " focus:ring-rose-500";
         row.querySelector('.sym-cause').className += " focus:ring-rose-500";
         row.querySelector('.sym-tag').className += " border-rose-300 text-rose-800 focus:ring-rose-500";
         row.querySelector('.sym-comment').className += " focus:ring-rose-500";
-        row.querySelector('.sym-bot-label').className += " text-rose-600";
-        row.querySelector('.sacsi-val-display').className += " bg-rose-100 text-rose-900 border-rose-200";
-        row.querySelector('.burden-ball-element').className += " orange-ball-element";
     }
 
     const badge = row.querySelector('.event-badge');
@@ -734,13 +403,28 @@ function addSymptomRow(type = 'GENERAL', desc = '', cause = '', sacsi = 0, pBand
     row.querySelector('.sym-tag').value = tag;
     row.querySelector('.sym-treatments').value = treatments;
     row.querySelector('.sym-comment').value = notes;
-    row.querySelector('.sym-sacsi').value = sacsi;
 
-    const pBtn = row.querySelector(`.persistence-btn[data-val="${pBand}"]`);
-    if (pBtn) setRowPersistence(pBtn, pBand);
+    // RACE-CONDITION-PROOF WEB COMPONENT INITIALIZATION
+    const panel = row.querySelector('.sym-sacsi-panel');
+    panel.setAttribute('event-type', type);
 
-    handleSacsiRowInput(row.querySelector('.sym-sacsi'));
-    renderRowRadar(row);
+    const initialValues = {
+        sacsiDepth: sacsi,
+        persistenceBand: pBand,
+        breadthAxes: breadthObj
+    };
+
+    if (typeof panel.setValue === 'function') {
+        panel.setValue(initialValues);
+    } else {
+        customElements.whenDefined('sacsi-vector-panel').then(() => {
+            if (panel.setValue) panel.setValue(initialValues);
+        });
+    }
+
+    panel.addEventListener('sacsi-change', () => {
+        if (!isProgrammaticUpdate) queueOptimisticSync();
+    });
 
     row.querySelectorAll('.input-trigger').forEach(input => {
         input.addEventListener('change', queueOptimisticSync);
@@ -749,9 +433,9 @@ function addSymptomRow(type = 'GENERAL', desc = '', cause = '', sacsi = 0, pBand
 
     container.appendChild(row);
     if (!isProgrammaticUpdate) queueOptimisticSync();
-}
+};
 
-function queueOptimisticSync() {
+window.queueOptimisticSync = function() {
     if (isProgrammaticUpdate) return;
     saveStateToLocalCache();
     hasPendingChanges = true;
@@ -764,7 +448,7 @@ function queueOptimisticSync() {
     toast.classList.remove('opacity-0');
 
     debounceTimer = setTimeout(() => { executeNetworkSync(); }, 2000);
-}
+};
 
 function saveStateToLocalCache() {
     let currentDateStr = document.getElementById('record_date').value;
@@ -779,19 +463,22 @@ function saveStateToLocalCache() {
         let treatments = row.querySelector('.sym-treatments').value.trim();
         let notes = row.querySelector('.sym-comment').value.trim();
 
+        const panel = row.querySelector('.sym-sacsi-panel');
+        const panelState = typeof panel.getValue === 'function' ? panel.getValue() : { sacsiDepth: 0, persistenceBand: 1, breadthAxes: {}, compositeSbi: 0 };
+
         if (tag && activeMDMTags.length > 0 && !activeMDMTags.includes(tag.toLowerCase())) {
             if (!tag.startsWith('[UNVERIFIED]')) tag = '[UNVERIFIED] ' + tag;
         }
 
-        if (desc || tag || parseInt(row.dataset.sacsi_depth) > 0) {
+        if (desc || tag || panelState.sacsiDepth > 0) {
             unifiedSymptomsArray.push({
                 event_type: row.dataset.event_type || 'GENERAL',
                 descriptor: desc,
                 likely_cause: cause,
-                sacsi_depth: parseInt(row.dataset.sacsi_depth || 0),
-                persistence_band: parseInt(row.dataset.persistence_band || 1),
-                breadth_axes: JSON.parse(row.dataset.breadth_axes || '{}'),
-                composite_sbi: parseInt(row.dataset.composite_sbi || 0),
+                sacsi_depth: panelState.sacsiDepth,
+                persistence_band: panelState.persistenceBand,
+                breadth_axes: panelState.breadthAxes,
+                composite_sbi: panelState.compositeSbi,
                 treatments: treatments,
                 context_notes: notes,
                 theme_tag: tag
@@ -875,7 +562,7 @@ function executeNetworkSync() {
     .finally(() => { isSyncing = false; });
 }
 
-async function handleDateSwitch(daysOffset, isDirectInput = false) {
+window.handleDateSwitch = async function(daysOffset, isDirectInput = false) {
     let dateInput = document.getElementById('record_date');
     if (hasPendingChanges) {
         clearTimeout(debounceTimer);
@@ -891,7 +578,7 @@ async function handleDateSwitch(daysOffset, isDirectInput = false) {
     }
     updateDateDisplay(dateInput.value);
     renderDateFromCache(dateInput.value);
-}
+};
 
 function updateGlobalTagAutofill() {
     const tagsSet = new Set();
@@ -1048,6 +735,7 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// SELF-HEALING SERVICE WORKER REGISTRATION
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')

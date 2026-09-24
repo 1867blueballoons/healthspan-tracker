@@ -1,50 +1,78 @@
-// Bumped to v1.9 to trigger the update
-const CACHE_NAME = 'healthspan-v5.3';
-const ASSETS = [
-  '/healthspan-tracker/index.html',
-  '/healthspan-tracker/manifest.json',
-  '/healthspan-tracker/assets/icons/icon-192.png',
-  '/healthspan-tracker/assets/icons/icon-512.png'
+/**
+ * Healthspan Daily Tracker - Resilient Offline Service Worker
+ */
+const CACHE_NAME = 'healthspan-v5.7';
+const STATIC_ASSETS = [
+  './',
+  './index.html',
+  './assets/js/pollenService.js',
+  './assets/js/sacsiVectorPanel.js',
+  './manifest.json'
 ];
 
-// Install and Cache assets
-self.addEventListener('install', (e) => {
-  // THE HOSTILE TAKEOVER COMMAND: 
-  // Force the waiting service worker to become the active service worker.
-  self.skipWaiting();
+// Optional assets that will not abort installation if missing (404)
+const OPTIONAL_ASSETS = [
+  './assets/icons/icon-192.png'
+];
 
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS);
-    })
-  );
-});
-
-// Clear old caches on activation
-self.addEventListener('activate', (e) => {
-  // TELL ALL OPEN TABS/APPS TO IMMEDIATELY USE THIS NEW WORKER
-  e.waitUntil(self.clients.claim());
-
-  e.waitUntil(
-    caches.keys().then((keyList) => {
-      return Promise.all(keyList.map((key) => {
-        if (key !== CACHE_NAME) {
-          return caches.delete(key);
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(async (cache) => {
+      // 1. Cache Core Mandatory App Shell
+      for (const asset of STATIC_ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.warn(`[SW Install] Mandatory core asset failed: ${asset}`, err);
         }
-      }));
+      }
+
+      // 2. Non-blocking Cache for Optional Branding Icons
+      for (const asset of OPTIONAL_ASSETS) {
+        try {
+          await cache.add(asset);
+        } catch (err) {
+          console.info(`[SW Install] Skipping non-critical optional asset: ${asset}`);
+        }
+      }
     })
   );
+  self.skipWaiting();
 });
 
-// Serve from Cache, Fallback to Network
-self.addEventListener('fetch', (e) => {
-  if (e.request.url.includes('script.google.com')) {
-    return; 
-  }
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
+      );
+    })
+  );
+  self.clients.claim();
+});
 
-  e.respondWith(
-    caches.match(e.request).then((response) => {
-      return response || fetch(e.request);
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      if (cachedResponse) return cachedResponse;
+      
+      return fetch(event.request).then((networkResponse) => {
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+          return networkResponse;
+        }
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
+        return networkResponse;
+      }).catch(() => {
+        // Fallback for offline navigational requests
+        if (event.request.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
+      });
     })
   );
 });
