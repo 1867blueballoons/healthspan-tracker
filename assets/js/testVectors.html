@@ -203,8 +203,8 @@
 
   <!-- Load production SACSI component module -->
   <script type="module">
-    // The timestamp query parameter forces ChromeOS to bypass cached JS copies
-    import { SacsiVectorPanel } from './sacsiVectorPanel.js?v=20260929_1125';
+    // Appending an active timestamp parameter forces Android Blink to bypass module cache
+  import { SacsiVectorPanel } from './sacsiVectorPanel.js?v=' + Date.now();
   
     const sacsiDom = document.getElementById('sacsiDom');
     const dispContext = document.getElementById('dispContext');
@@ -242,14 +242,17 @@
   <!-- Offline PWA Capability -->
   <script>
     if ('serviceWorker' in navigator) {
-      const swCode = `
-        self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
-        self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
-        self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline Execution Active'))));
-      `;
-      const blob = new Blob([swCode], { type: 'application/javascript' });
-      navigator.serviceWorker.register(URL.createObjectURL(blob));
-    }
+    // Service Worker Network-First / No-Cache strategy for dev testing
+    const swCode = `
+    self.addEventListener('install', e => self.skipWaiting());
+    self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+    self.addEventListener('fetch', e => {
+      e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => new Response('Offline')));
+    });
+  `;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  navigator.serviceWorker.register(URL.createObjectURL(blob));
+}
   </script>
 </body>
 </html>
