@@ -3,11 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SACSI Systemic Vector Testbed</title>
+  <title>SACSI Vector Panel Testbed</title>
   <meta name="theme-color" content="#fef08a">
   
-  <!-- Inline Manifest for standalone PWA capability on Mobile, Tablet & ChromeOS -->
-  <link rel="manifest" href='data:application/manifest+json,{"name":"SACSI Vector Testbed","short_name":"SACSI Test","start_url":".","display":"standalone","background_color":"#fef08a","theme_color":"#fef08a"}'>
+  <!-- Clean Unencoded PWA Manifest Data URI -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"SACSI Vector Testbed","short_name":"SACSI","start_url":".","display":"standalone","background_color":"#fef08a","theme_color":"#fef08a"}'>
+
+  <!-- Favicon Data URI -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 
   <style>
     :root {
@@ -26,7 +29,6 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    /* Requirement: Non-DOM element background is yellow */
     body {
       background-color: var(--bg-yellow);
       color: var(--text-main);
@@ -83,7 +85,6 @@
       padding-bottom: 0.4rem;
     }
 
-    /* Solicit Symptom Type UI */
     .selector-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -110,7 +111,6 @@
       box-shadow: 1px 1px 0px var(--border-black);
     }
 
-    /* Telemetry Diagnostics Grid */
     .telemetry-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
@@ -158,7 +158,6 @@
     <span class="badge">Healthspan PWA</span>
   </header>
 
-  <!-- Step 1: Solicit Symptom Type Context -->
   <section class="testbed-card">
     <h2>1. Select Symptom Context</h2>
     <div class="selector-grid">
@@ -167,13 +166,11 @@
     </div>
   </section>
 
-  <!-- Step 2: Rendered Production DOM Instance -->
   <section class="testbed-card" style="padding: 0.5rem;">
     <h2>2. Interactive Custom DOM Element</h2>
     <sacsi-vector-panel id="sacsiDom" event-type="GENERAL"></sacsi-vector-panel>
   </section>
 
-  <!-- Step 3: Telemetry Diagnostics & Payload Monitoring -->
   <section class="testbed-card">
     <h2>3. Real-Time Telemetry & MDM Values</h2>
     <div class="telemetry-grid">
@@ -183,15 +180,15 @@
       </div>
       <div class="telemetry-box">
         <div class="lbl">Severity</div>
-        <div class="val" id="dispSeverity">0</div>
+        <div class="val" id="dispSeverity">0/10</div>
       </div>
       <div class="telemetry-box">
         <div class="lbl">Persistence</div>
-        <div class="val" id="dispPersistence">1</div>
+        <div class="val" id="dispPersistence">Band 1</div>
       </div>
       <div class="telemetry-box">
         <div class="lbl">Burden Index</div>
-        <div class="val" id="dispBurden" style="color: #d97706;">0</div>
+        <div class="val" id="dispBurden" style="color: #d97706;">0/100</div>
       </div>
     </div>
 
@@ -201,58 +198,53 @@
     <pre><code id="jsonOutput">{}</code></pre>
   </section>
 
-  <!-- Load production SACSI component module -->
   <script type="module">
-    // Appending an active timestamp parameter forces Android Blink to bypass module cache
-  import { SacsiVectorPanel } from './sacsiVectorPanel.js?v=' + Date.now();
-  
+    const cacheBuster = '?v=' + Date.now();
+    await import(`./sacsiVectorPanel.js${cacheBuster}`);
+
     const sacsiDom = document.getElementById('sacsiDom');
     const dispContext = document.getElementById('dispContext');
     const dispSeverity = document.getElementById('dispSeverity');
     const dispPersistence = document.getElementById('dispPersistence');
     const dispBurden = document.getElementById('dispBurden');
     const jsonOutput = document.getElementById('jsonOutput');
-  
+
     function syncTelemetry(data) {
-      dispContext.innerText = data.eventType;
+      if (!data) return;
+      dispContext.innerText = data.eventType || 'GENERAL';
       dispSeverity.innerText = `${data.sacsiDepth}/10`;
       dispPersistence.innerText = `Band ${data.persistenceBand}`;
       dispBurden.innerText = `${data.compositeSbi}/100`;
       jsonOutput.innerText = JSON.stringify(data, null, 2);
     }
-  
+
     window.switchSymptomContext = function(type) {
       document.getElementById('btnGeneral').classList.toggle('active', type === 'GENERAL');
       document.getElementById('btnHayfever').classList.toggle('active', type === 'HAYFEVER');
       
       sacsiDom.setAttribute('event-type', type);
-      sacsiDom.updateCalculations();
+      if (typeof sacsiDom.updateCalculations === 'function') {
+        sacsiDom.updateCalculations();
+      }
     };
-  
+
     sacsiDom.addEventListener('sacsi-change', (e) => {
       syncTelemetry(e.detail);
     });
-  
+
     window.addEventListener('DOMContentLoaded', () => {
-      syncTelemetry(sacsiDom.getValue());
+      if (typeof sacsiDom.getValue === 'function') {
+        syncTelemetry(sacsiDom.getValue());
+      }
     });
-  
   </script>
 
-  <!-- Offline PWA Capability -->
   <script>
     if ('serviceWorker' in navigator) {
-    // Service Worker Network-First / No-Cache strategy for dev testing
-    const swCode = `
-    self.addEventListener('install', e => self.skipWaiting());
-    self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-    self.addEventListener('fetch', e => {
-      e.respondWith(fetch(e.request, { cache: 'no-store' }).catch(() => new Response('Offline')));
-    });
-  `;
-  const blob = new Blob([swCode], { type: 'application/javascript' });
-  navigator.serviceWorker.register(URL.createObjectURL(blob));
-}
+      navigator.serviceWorker.register('./sw.js')
+        .then(() => console.log('Healthspan Service Worker Registered'))
+        .catch(err => console.error('SW Registration Failed:', err));
+    }
   </script>
 </body>
 </html>
