@@ -2,6 +2,7 @@
 """
 Hoh Analytica - Spatio-Temporal Environmental Schema Engine
 Instantiates compound primary keys (location, entry_date) across environmental tables.
+Features forced root logger initialization for complete execution visibility.
 """
 
 import os
@@ -10,53 +11,74 @@ import sqlite3
 import logging
 from pathlib import Path
 
-# Configure Structured Logging
+# ======================================================================================
+# 1. IMMEDIATE FORCED LOGGING INITIALIZATION (Fixes Silent Execution)
+# ======================================================================================
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[logging.StreamHandler(sys.stdout)],
+    force=True  # Overrides any root loggers instantiated during early module imports
 )
 
-# CENTRALIZED KEY-VALUE CONFIGURATION MAPPING
-CONFIG = {
-    "DB_LOCATION": os.getenv(
-        "HOH_DB_PATH", 
-        "~dev/analytics/Hoh_Analytica/db/hoh_telemetry.db"
-    ),
-    "DEFAULT_LOCATION": "Wilmslow",
-    "TIMEOUT_SECONDS": 30.0,
-    "WAL_MODE": True,
-    "ENFORCE_FOREIGN_KEYS": True
-}
+logging.info("==================================================================")
+logging.info("Starting Hoh Analytica Spatio-Temporal Schema Migration Engine")
+logging.info("==================================================================")
+
+# ======================================================================================
+# 2. DYNAMIC SYS.PATH INJECTION & CONFIG BINDING
+# ======================================================================================
+CONFIG_MODULE_DIR = Path(os.path.expanduser("~/dev/config")).resolve()
+logging.info(f"Targeting Central Config Directory: {CONFIG_MODULE_DIR}")
+
+if not CONFIG_MODULE_DIR.exists():
+    logging.critical(f"[!] Directory Error: Config directory does not exist at {CONFIG_MODULE_DIR}")
+    sys.exit(1)
+
+if str(CONFIG_MODULE_DIR) not in sys.path:
+    sys.path.insert(0, str(CONFIG_MODULE_DIR))
+    logging.debug(f"Prepend sys.path[0] -> {CONFIG_MODULE_DIR}")
+
+try:
+    import config_manager
+    logging.info(f"[✓] Successfully bound Central Config Manager from {CONFIG_MODULE_DIR}")
+except ModuleNotFoundError as err:
+    logging.critical(
+        f"[!] Import Failure: Could not find 'config_manager.py' inside {CONFIG_MODULE_DIR}.\n"
+        f"    Ensure the file exists at: {CONFIG_MODULE_DIR / 'config_manager.py'}\n"
+        f"    Raw Error: {err}"
+    )
+    sys.exit(1)
+except Exception as err:
+    logging.critical(f"[!] Unhandled exception during config_manager import: {err}")
+    sys.exit(1)
 
 
-def resolve_db_path(raw_path: str) -> Path:
-    """
-    Expands tilde (~) and returns absolute Path object for SQLite DB.
-    """
-    expanded = Path(os.path.expanduser(raw_path)).resolve()
-    if not expanded.parent.exists():
-        logging.info(f"Creating missing directory tree: {expanded.parent}")
-        expanded.parent.mkdir(parents=True, exist_ok=True)
-    return expanded
-
-
+# ======================================================================================
+# 3. DATABASE CONNECTION ENGINE
+# ======================================================================================
 def get_db_connection(db_path: Path) -> sqlite3.Connection:
     """
-    Establishes a SQLite connection with WAL mode and PRAGMA integrity checks.
+    Establishes an atomic SQLite connection enforcing WAL mode and PRAGMA integrity checks.
     """
-    logging.info(f"Opening atomic connection to: {db_path}")
-    conn = sqlite3.connect(db_path, timeout=CONFIG["TIMEOUT_SECONDS"])
+    timeout = float(config_manager.get_key("TIMEOUT_SECONDS", 30.0))
+    logging.info(f"Opening atomic SQLite connection: {db_path} (Timeout: {timeout}s)")
     
-    if CONFIG["WAL_MODE"]:
+    conn = sqlite3.connect(db_path, timeout=timeout)
+    
+    if config_manager.get_key("WAL_MODE", True):
         conn.execute("PRAGMA journal_mode=WAL;")
-    if CONFIG["ENFORCE_FOREIGN_KEYS"]:
+        logging.debug("PRAGMA journal_mode=WAL enforced.")
+    if config_manager.get_key("ENFORCE_FOREIGN_KEYS", True):
         conn.execute("PRAGMA foreign_keys=ON;")
+        logging.debug("PRAGMA foreign_keys=ON enforced.")
         
     return conn
 
 
-# COMPOUND SPATIO-TEMPORAL DDL MIGRATION SCRIPT
+# ======================================================================================
+# 4. COMPOUND SPATIO-TEMPORAL DDL SCHEMA
+# ======================================================================================
 SPATIO_TEMPORAL_DDL_SCRIPT = """
 -- 1. Daily Meteorological Forecast Table (Compound Spatio-Temporal Key)
 CREATE TABLE IF NOT EXISTS env_daily_forecast (
@@ -88,25 +110,21 @@ CREATE TABLE IF NOT EXISTS env_daily_pollen (
 
 
 def execute_schema_migration(conn: sqlite3.Connection, sql_script: str) -> None:
-    """
-    Executes raw SQL DDL script inside an atomic transaction.
-    """
+    """ Executes DDL statements within an atomic transaction block. """
     cursor = conn.cursor()
     try:
-        logging.info("Executing Spatio-Temporal Schema DDL Transaction...")
+        logging.info("Executing Spatio-Temporal DDL Script...")
         cursor.executescript(sql_script)
         conn.commit()
-        logging.info("Spatio-Temporal Schema DDL committed successfully.")
+        logging.info("[✓] DDL transaction committed successfully.")
     except sqlite3.Error as e:
         conn.rollback()
-        logging.error(f"SQL Schema Migration Error: {e}")
+        logging.error(f"[!] SQL Migration Error: {e}")
         raise e
 
 
 def verify_tables_exist(conn: sqlite3.Connection) -> None:
-    """
-    Verifies target tables and checks for compound primary keys.
-    """
+    """ Inspects SQLite schema via PRAGMA table_info to verify compound primary keys. """
     cursor = conn.cursor()
     target_tables = ['env_daily_forecast', 'env_daily_pollen']
     
@@ -117,21 +135,32 @@ def verify_tables_exist(conn: sqlite3.Connection) -> None:
         pk_cols = [row[1] for row in columns if row[5] > 0]
         
         if columns:
-            logging.info(f"[✓] Table verified: '{table}' | PK: {pk_cols} | Columns: {col_names}")
+            logging.info(f"[✓] VERIFIED: '{table}' | PK Vector: {pk_cols} | Columns: {col_names}")
         else:
-            logging.error(f"[!] Verification failed: Table '{table}' was not created.")
+            logging.error(f"[!] FAILED: Table '{table}' was not created.")
 
 
+# ======================================================================================
+# 5. MAIN EXECUTION PIPELINE
+# ======================================================================================
 def main():
-    db_file_path = resolve_db_path(CONFIG["DB_LOCATION"])
-
     try:
+        db_file_path = config_manager.get_db_path()
+        default_loc = config_manager.get_key("DEFAULT_LOCATION", "Wilmslow")
+        
+        logging.info(f"Target Database File: {db_file_path}")
+        logging.info(f"Default Location Setting: '{default_loc}'")
+
         with get_db_connection(db_file_path) as conn:
             execute_schema_migration(conn, SPATIO_TEMPORAL_DDL_SCRIPT)
             verify_tables_exist(conn)
             
+        logging.info("=================================================")
+        logging.info("Migration Completed Successfully")
+        logging.info("=================================================")
+            
     except Exception as err:
-        logging.critical(f"Spatio-Temporal Schema Migration Failed: {err}")
+        logging.critical(f"[!] Unhandled Execution Failure: {err}", exc_info=True)
         sys.exit(1)
 
 

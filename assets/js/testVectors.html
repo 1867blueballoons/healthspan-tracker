@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SACSI Systemic Vector Testbed</title>
+  <meta name="theme-color" content="#fef08a">
+  
+  <!-- Inline Manifest for standalone PWA capability on Mobile, Tablet & ChromeOS -->
+  <link rel="manifest" href='data:application/manifest+json,{"name":"SACSI Vector Testbed","short_name":"SACSI Test","start_url":".","display":"standalone","background_color":"#fef08a","theme_color":"#fef08a"}'>
+
+  <style>
+    :root {
+      --bg-yellow: #fef08a;
+      --bg-yellow-dark: #fde047;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --border-black: #000000;
+      --accent-blue: #2563eb;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    /* Requirement: Non-DOM element background is yellow */
+    body {
+      background-color: var(--bg-yellow);
+      color: var(--text-main);
+      padding: 1.25rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    header {
+      background: var(--text-main);
+      color: #ffffff;
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      border: 3px solid var(--border-black);
+      box-shadow: 4px 4px 0px var(--border-black);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .badge {
+      background: var(--bg-yellow-dark);
+      color: var(--text-main);
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 0.7rem;
+      border: 1px solid var(--border-black);
+    }
+
+    .testbed-card {
+      background: var(--card-bg);
+      border: 3px solid var(--border-black);
+      border-radius: 12px;
+      padding: 1rem;
+      box-shadow: 4px 4px 0px var(--border-black);
+    }
+
+    .testbed-card h2 {
+      font-size: 0.95rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+      color: #334155;
+      border-bottom: 2px solid #f1f5f9;
+      padding-bottom: 0.4rem;
+    }
+
+    /* Solicit Symptom Type UI */
+    .selector-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    .btn-toggle {
+      padding: 0.75rem;
+      font-weight: 800;
+      font-size: 0.9rem;
+      border: 2px solid var(--border-black);
+      border-radius: 8px;
+      background: #f8fafc;
+      color: var(--text-main);
+      cursor: pointer;
+      box-shadow: 2px 2px 0px var(--border-black);
+      transition: all 0.1s ease;
+    }
+
+    .btn-toggle.active {
+      background: var(--accent-blue);
+      color: #ffffff;
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px var(--border-black);
+    }
+
+    /* Telemetry Diagnostics Grid */
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .telemetry-box {
+      background: #f8fafc;
+      border: 2px solid var(--border-black);
+      border-radius: 8px;
+      padding: 0.5rem;
+      text-align: center;
+    }
+
+    .telemetry-box .lbl {
+      font-size: 0.625rem;
+      font-weight: 800;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    .telemetry-box .val {
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: var(--text-main);
+    }
+
+    pre {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 2px solid var(--border-black);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.75rem;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>SACSI Vector Panel Engine Testbed</h1>
+    <span class="badge">Healthspan PWA</span>
+  </header>
+
+  <!-- Step 1: Solicit Symptom Type Context -->
+  <section class="testbed-card">
+    <h2>1. Select Symptom Context</h2>
+    <div class="selector-grid">
+      <button class="btn-toggle active" id="btnGeneral" onclick="switchSymptomContext('GENERAL')">General Symptoms</button>
+      <button class="btn-toggle" id="btnHayfever" onclick="switchSymptomContext('HAYFEVER')">Hayfever</button>
+    </div>
+  </section>
+
+  <!-- Step 2: Rendered Production DOM Instance -->
+  <section class="testbed-card" style="padding: 0.5rem;">
+    <h2>2. Interactive Custom DOM Element</h2>
+    <sacsi-vector-panel id="sacsiDom" event-type="GENERAL"></sacsi-vector-panel>
+  </section>
+
+  <!-- Step 3: Telemetry Diagnostics & Payload Monitoring -->
+  <section class="testbed-card">
+    <h2>3. Real-Time Telemetry & MDM Values</h2>
+    <div class="telemetry-grid">
+      <div class="telemetry-box">
+        <div class="lbl">Context</div>
+        <div class="val" id="dispContext" style="font-size:0.75rem; margin-top:0.3rem;">GENERAL</div>
+      </div>
+      <div class="telemetry-box">
+        <div class="lbl">Severity</div>
+        <div class="val" id="dispSeverity">0</div>
+      </div>
+      <div class="telemetry-box">
+        <div class="lbl">Persistence</div>
+        <div class="val" id="dispPersistence">1</div>
+      </div>
+      <div class="telemetry-box">
+        <div class="lbl">Burden Index</div>
+        <div class="val" id="dispBurden" style="color: #d97706;">0</div>
+      </div>
+    </div>
+
+    <div style="font-size:0.7rem; font-weight:800; color:#64748b; text-transform:uppercase; margin-bottom:0.3rem;">
+      Full System Payload Data (`.getValue()` Output):
+    </div>
+    <pre><code id="jsonOutput">{}</code></pre>
+  </section>
+
+  <!-- Load production SACSI component module -->
+  <script type="module">
+    // Import your custom element module file
+    import { SacsiVectorPanel } from './sacsiVectorPanel.js';
+
+    const sacsiDom = document.getElementById('sacsiDom');
+    const dispContext = document.getElementById('dispContext');
+    const dispSeverity = document.getElementById('dispSeverity');
+    const dispPersistence = document.getElementById('dispPersistence');
+    const dispBurden = document.getElementById('dispBurden');
+    const jsonOutput = document.getElementById('jsonOutput');
+
+    // Update Telemetry Display
+    function syncTelemetry(data) {
+      dispContext.innerText = data.eventType;
+      dispSeverity.innerText = `${data.sacsiDepth}/10`;
+      dispPersistence.innerText = `Band ${data.persistenceBand}`;
+      dispBurden.innerText = `${data.compositeSbi}/100`;
+      jsonOutput.innerText = JSON.stringify(data, null, 2);
+    }
+
+    // Handle Symptom Context Switches
+    window.switchSymptomContext = function(type) {
+      document.getElementById('btnGeneral').classList.toggle('active', type === 'GENERAL');
+      document.getElementById('btnHayfever').classList.toggle('active', type === 'HAYFEVER');
+      
+      sacsiDom.setAttribute('event-type', type);
+      // Re-trigger DOM rendering
+      sacsiDom.updateCalculations();
+    };
+
+    // Event listener for Custom Element's native "sacsi-change" dispatch
+    sacsiDom.addEventListener('sacsi-change', (e) => {
+      syncTelemetry(e.detail);
+    });
+
+    // Initial sync
+    window.addEventListener('DOMContentLoaded', () => {
+      syncTelemetry(sacsiDom.getValue());
+    });
+  </script>
+
+  <!-- Offline PWA Capability -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        self.addEventListener('install', e => e.waitUntil(self.skipWaiting()));
+        self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+        self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline Execution Active'))));
+      `;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      navigator.serviceWorker.register(URL.createObjectURL(blob));
+    }
+  </script>
+</body>
+</html>

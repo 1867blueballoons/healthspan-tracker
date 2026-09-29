@@ -1,6 +1,6 @@
 /**
  * SACSI Systemic Vector & Burden Engine
- * Standardized Custom Web Component with Deterministic Vertical Slider
+ * Standardized Custom Web Component with Top=0 / Bot=10 Vertical Slider
  */
 
 const SEVERITY_DEFINITIONS = {
@@ -113,9 +113,9 @@ export class SacsiVectorPanel extends HTMLElement {
             const score = this._state.compositeSbi;
             const isHayfever = this._state.eventType === 'HAYFEVER';
             if (score === 0) {
-                ball.style.width = '6px'; ball.style.height = '6px'; ball.style.boxShadow = 'none'; ball.style.opacity = '0.2';
+                ball.style.width = '8px'; ball.style.height = '8px'; ball.style.boxShadow = 'none'; ball.style.opacity = '0.2';
             } else {
-                let size = 12 + (score / 100) * 45;
+                let size = 14 + (score / 100) * 45;
                 let blur = 6 + (score / 100) * 20;
                 let opacity = 0.4 + (score / 100) * 0.6;
                 ball.style.opacity = '1'; ball.style.width = `${size}px`; ball.style.height = `${size}px`;
@@ -132,7 +132,8 @@ export class SacsiVectorPanel extends HTMLElement {
         const svg = this.shadowRoot.querySelector('.radar-svg');
         if (!svg) return;
 
-        const center = 160, radius = 75;
+        // Expanded bounds (500x440) to accommodate larger badge sizing and mobile spacing
+        const center = 250, radius = 100;
         const isHayfever = this._state.eventType === 'HAYFEVER';
         const strokeHex = isHayfever ? '#10b981' : '#f97316';
         const fillRgba = isHayfever ? 'rgba(16, 185, 129, ' : 'rgba(249, 115, 22, ';
@@ -142,12 +143,12 @@ export class SacsiVectorPanel extends HTMLElement {
         AXES_NAMES.forEach((name, i) => {
             let startAngle = (Math.PI / 3) * i - Math.PI / 2 - (Math.PI / 6);
             let endAngle = startAngle + (Math.PI / 3);
-            let x1 = center + (radius + 15) * Math.cos(startAngle);
-            let y1 = center + (radius + 15) * Math.sin(startAngle);
-            let x2 = center + (radius + 15) * Math.cos(endAngle);
-            let y2 = center + (radius + 15) * Math.sin(endAngle);
+            let x1 = center + (radius + 20) * Math.cos(startAngle);
+            let y1 = center + (radius + 20) * Math.sin(startAngle);
+            let x2 = center + (radius + 20) * Math.cos(endAngle);
+            let y2 = center + (radius + 20) * Math.sin(endAngle);
 
-            let sectorPath = `M ${center},${center} L ${x1},${y1} A ${radius + 15} ${radius + 15} 0 0 1 ${x2},${y2} Z`;
+            let sectorPath = `M ${center},${center} L ${x1},${y1} A ${radius + 20} ${radius + 20} 0 0 1 ${x2},${y2} Z`;
             html += `<path d="${sectorPath}" fill="rgba(0,0,0,0.01)" class="sector-touch" data-axis="${name}"><title>${name}</title></path>`;
         });
 
@@ -168,19 +169,20 @@ export class SacsiVectorPanel extends HTMLElement {
             let rSub = (radius / 3) * val;
             polyPts += `${center + rSub * Math.cos(angle)},${center + rSub * Math.sin(angle)} `;
         });
-        html += `<polygon points="${polyPts}" fill="${fillRgba}0.3)" stroke="${strokeHex}" stroke-width="2" pointer-events="none"/>`;
+        html += `<polygon points="${polyPts}" fill="${fillRgba}0.35)" stroke="${strokeHex}" stroke-width="3" pointer-events="none"/>`;
 
         AXES_NAMES.forEach((name, i) => {
             let angle = (Math.PI / 3) * i - Math.PI / 2;
             let val = this._state.breadthAxes[name] || 0;
-            let lx = center + (radius + 42) * Math.cos(angle);
-            let ly = center + (radius + 42) * Math.sin(angle);
-            let badgeColor = val > 0 ? strokeHex : '#334155';
+            let lx = center + (radius + 70) * Math.cos(angle);
+            let ly = center + (radius + 70) * Math.sin(angle);
+            let badgeColor = val > 0 ? strokeHex : '#1e293b';
 
+            // Doubled font size (18px / 16px) and high-contrast styling
             html += `<g transform="translate(${lx}, ${ly})" class="badge-group" data-axis="${name}">
-                <rect x="-41" y="-15" width="82" height="30" rx="7" fill="${badgeColor}" opacity="0.95" />
-                <text x="0" y="-1" text-anchor="middle" font-size="11" font-weight="bold" fill="#fff">${AXIS_ICONS[i]} ${name}</text>
-                <text x="0" y="10" text-anchor="middle" font-size="10" font-weight="black" fill="#fff">Lvl ${val}</text>
+                <rect x="-65" y="-22" width="130" height="44" rx="10" fill="${badgeColor}" stroke="#000" stroke-width="2" />
+                <text x="0" y="-2" text-anchor="middle" font-size="18" font-weight="800" fill="#ffffff">${AXIS_ICONS[i]} ${name}</text>
+                <text x="0" y="15" text-anchor="middle" font-size="15" font-weight="900" fill="#fde047">Lvl ${val}</text>
             </g>`;
         });
 
@@ -229,97 +231,109 @@ export class SacsiVectorPanel extends HTMLElement {
         this.shadowRoot.innerHTML = `
         <style>
             :host { display: block; font-family: system-ui, -apple-system, sans-serif; }
-            .panel-container { background: #ffffff; padding: 1rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; }
-            .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1rem; }
-            .score-display { font-weight: 900; font-size: 0.875rem; padding: 0.25rem 0.5rem; border-radius: 0.375rem; background: #fef3c7; color: #d97706; border: 1px solid #fde68a; }
+            .panel-container { background: #ffffff; padding: 1rem; border-radius: 0.75rem; border: 3px solid #000000; box-shadow: 4px 4px 0px #000000; }
+            .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+            .score-display { font-weight: 900; font-size: 1rem; padding: 0.35rem 0.6rem; border-radius: 0.375rem; background: #fef3c7; color: #b45309; border: 2px solid #000000; }
             
+            /* Responsive Grid Layout */
             .grid-layout { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; align-items: center; }
-            .slider-box { grid-column: span 3; display: flex; flex-direction: column; align-items: center; background: #f8fafc; padding: 0.5rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; }
             
-            /* STANDARDIZED DUAL-PROP VERTICAL SLIDER (TOP-DOWN 0 -> 10) */
+            @media (max-width: 640px) {
+                .grid-layout { display: flex; flex-direction: column; }
+                .slider-box { width: 100%; flex-direction: row !important; justify-content: space-between; height: auto !important; padding: 0.75rem 1rem !important; }
+                .vertical-range { writing-mode: horizontal-tb !important; direction: ltr !important; width: 100% !important; height: 16px !important; margin: 0 0.75rem; }
+                .radar-box { width: 100%; }
+            }
+
+            .slider-box { grid-column: span 3; display: flex; flex-direction: column; align-items: center; background: #f8fafc; padding: 0.75rem 0.5rem; border-radius: 0.5rem; border: 2px solid #000000; }
+            
+            /* CORRECTED TOP-DOWN VERTICAL SLIDER (TOP = 0, BOTTOM = 10) */
             .vertical-range { 
                 writing-mode: vertical-lr; 
-                direction: rtl; 
+                direction: ltr; /* Corrects axis orientation so Top is 0, Bottom is 10 */
                 appearance: none;
                 -webkit-appearance: none;
-                width: 16px; 
-                height: 180px; 
+                width: 18px; 
+                height: 220px; 
                 background: #cbd5e1;
-                border-radius: 6px;
+                border-radius: 8px;
                 outline: none;
                 cursor: pointer; 
             }
             .vertical-range::-webkit-slider-thumb {
                 appearance: none;
                 -webkit-appearance: none;
-                width: 22px;
-                height: 22px;
+                width: 28px;
+                height: 28px;
                 border-radius: 50%;
-                background: #4f46e5;
+                background: #2563eb;
                 cursor: pointer;
-                border: 2px solid #ffffff;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                border: 3px solid #000000;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             }
 
-            .radar-box { grid-column: span 9; display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; }
+            .radar-box { grid-column: span 9; display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; width: 100%; }
             .radar-header { display: flex; justify-content: space-between; width: 100%; align-items: center; }
-            .sacsi-val-display { font-weight: 900; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: 0.25rem; background: #f1f5f9; border: 1px solid #cbd5e1; }
-            .burden-ball { border-radius: 50%; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+            .sacsi-val-display { font-weight: 900; font-size: 0.9rem; padding: 0.35rem 0.6rem; border-radius: 0.375rem; background: #f1f5f9; border: 2px solid #000000; }
+            .burden-ball { border-radius: 50%; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); border: 1px solid #000000; }
             
-            .radar-grid { fill: none; stroke: #cbd5e1; stroke-dasharray: 2 2; }
-            .sector-touch { cursor: pointer; }
-            .badge-group { cursor: pointer; }
+            .radar-svg { width: 100%; height: auto; max-width: 500px; display: block; overflow: visible; }
 
-            .benchmark-banner { background: #f8fafc; padding: 0.6rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; text-align: center; margin-top: 1rem; }
-            .sacsi-text-anchor { font-size: 0.75rem; font-style: italic; color: #334155; margin: 0; }
+            .radar-grid { fill: none; stroke: #94a3b8; stroke-dasharray: 3 3; stroke-width: 1.5; }
+            .sector-touch { cursor: pointer; }
+            .badge-group { cursor: pointer; transition: transform 0.1s ease; }
+            .badge-group:hover { transform: scale(1.05); }
+
+            .benchmark-banner { background: #f8fafc; padding: 0.75rem; border-radius: 0.5rem; border: 2px solid #000000; text-align: center; margin-top: 1rem; }
+            .sacsi-text-anchor { font-size: 0.85rem; font-weight: 600; color: #1e293b; margin: 0; }
 
             .threshold-drawer { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease; margin-top: 0.5rem; }
             .threshold-drawer.open { max-height: 500px; opacity: 1; }
             
-            .persistence-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.375rem; margin-top: 0.5rem; }
-            .persistence-btn { padding: 0.375rem; border-radius: 0.375rem; background: #ffffff; border: 1px solid #cbd5e1; text-align: center; cursor: pointer; font-size: 0.75rem; }
-            .persistence-btn.active { background: #e11d48; color: #ffffff; border-color: #be123c; }
+            .persistence-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
+            .persistence-btn { padding: 0.5rem; border-radius: 0.5rem; background: #ffffff; border: 2px solid #000000; text-align: center; cursor: pointer; font-size: 0.8rem; font-weight: 700; }
+            .persistence-btn.active { background: #e11d48; color: #ffffff; border-color: #000000; box-shadow: 2px 2px 0px #000000; }
         </style>
 
         <div class="panel-container">
             <div class="header-bar">
-                <span style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Topological SACSI Panel</span>
+                <span style="font-size: 0.85rem; font-weight: 900; color: #0f172a; text-transform: uppercase;">Topological SACSI Panel</span>
                 <span class="score-display">0 / 100</span>
             </div>
 
             <div class="grid-layout">
                 <div class="slider-box">
-                    <span style="font-size: 0.625rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">Top = 0</span>
+                    <span style="font-size: 0.75rem; font-weight: 900; color: #000000; text-transform: uppercase;">Top = 0</span>
                     <input type="range" min="0" max="10" value="0" class="vertical-range" />
-                    <span style="font-size: 0.625rem; font-weight: 700; color: #e11d48; text-transform: uppercase; margin-top: 0.25rem;">Bot = 10</span>
+                    <span style="font-size: 0.75rem; font-weight: 900; color: #e11d48; text-transform: uppercase;">Bot = 10</span>
                 </div>
 
                 <div class="radar-box">
                     <div class="radar-header">
                         <span class="sacsi-val-display">Severity: 0/10</span>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="font-size: 0.625rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Burden:</span>
-                            <div class="burden-ball" style="width: 6px; height: 6px; opacity: 0.2; background: #f97316;"></div>
+                            <span style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Burden:</span>
+                            <div class="burden-ball" style="width: 8px; height: 8px; opacity: 0.2; background: #f97316;"></div>
                         </div>
                     </div>
 
-                    <svg class="radar-svg" width="260" height="220" viewBox="0 0 320 280"></svg>
+                    <svg class="radar-svg" viewBox="0 0 500 440"></svg>
                 </div>
             </div>
 
             <div class="benchmark-banner">
-                <span style="font-size: 0.625rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Severity Benchmark</span>
+                <span style="font-size: 0.7rem; font-weight: 900; color: #64748b; text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Severity Benchmark</span>
                 <p class="sacsi-text-anchor">Baseline / Asymptomatic. Zero impairment, normal physiological function.</p>
             </div>
 
             <div class="threshold-drawer">
-                <span style="font-size: 0.625rem; font-weight: 800; color: #475569; text-transform: uppercase;">Persistence Band</span>
+                <span style="font-size: 0.7rem; font-weight: 900; color: #0f172a; text-transform: uppercase;">Persistence Band</span>
                 <div class="persistence-grid">
-                    <button class="persistence-btn active" data-val="1"><strong>&lt;30m</strong><br><span style="font-size: 0.55rem;">Transient</span></button>
-                    <button class="persistence-btn" data-val="2"><strong>30m-2h</strong><br><span style="font-size: 0.55rem;">Episodic</span></button>
-                    <button class="persistence-btn" data-val="3"><strong>2h-6h</strong><br><span style="font-size: 0.55rem;">Extended</span></button>
-                    <button class="persistence-btn" data-val="4"><strong>6h-16h</strong><br><span style="font-size: 0.55rem;">Persistent</span></button>
-                    <button class="persistence-btn" data-val="5"><strong>&gt;16h</strong><br><span style="font-size: 0.55rem;">Diurnal</span></button>
+                    <button class="persistence-btn active" data-val="1"><strong>&lt;30m</strong><br><span style="font-size: 0.65rem;">Transient</span></button>
+                    <button class="persistence-btn" data-val="2"><strong>30m-2h</strong><br><span style="font-size: 0.65rem;">Episodic</span></button>
+                    <button class="persistence-btn" data-val="3"><strong>2h-6h</strong><br><span style="font-size: 0.65rem;">Extended</span></button>
+                    <button class="persistence-btn" data-val="4"><strong>6h-16h</strong><br><span style="font-size: 0.65rem;">Persistent</span></button>
+                    <button class="persistence-btn" data-val="5"><strong>&gt;16h</strong><br><span style="font-size: 0.65rem;">Diurnal</span></button>
                 </div>
             </div>
         </div>
