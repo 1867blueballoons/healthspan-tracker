@@ -1,7 +1,10 @@
 /**
  * SACSI Systemic Vector & Burden Engine
- * Standardized Custom Web Component with Top=0 / Bot=10 Vertical Slider
+ * Standardized Custom Web Component with Rotated Vertical Slider Core
  */
+
+// UPDATE THIS STAMP WHENEVER YOU SAVE TO VERIFY REFRESHES
+const BUILD_TIMESTAMP = "2026-09-29 11:25:00 UTC";
 
 const SEVERITY_DEFINITIONS = {
     0: "Baseline / Asymptomatic. Zero impairment, normal physiological function.",
@@ -54,7 +57,12 @@ export class SacsiVectorPanel extends HTMLElement {
     }
 
     getValue() {
-        return { ...this._state };
+        return { 
+            ...this._state,
+            buildTimestamp: BUILD_TIMESTAMP,
+            schemaVersion: "1.1",
+            uiOrientation: "TOP_ZERO_BOTTOM_TEN"
+        };
     }
 
     setValue(data) {
@@ -91,7 +99,9 @@ export class SacsiVectorPanel extends HTMLElement {
         if (!root) return;
 
         const slider = root.querySelector('.vertical-range');
-        if (slider) slider.value = this._state.sacsiDepth;
+        if (slider) {
+            slider.value = this._state.sacsiDepth;
+        }
 
         const valDisplay = root.querySelector('.sacsi-val-display');
         if (valDisplay) valDisplay.textContent = `Severity: ${this._state.sacsiDepth}/10`;
@@ -132,8 +142,7 @@ export class SacsiVectorPanel extends HTMLElement {
         const svg = this.shadowRoot.querySelector('.radar-svg');
         if (!svg) return;
 
-        // Expanded bounds (500x440) to accommodate larger badge sizing and mobile spacing
-        const center = 250, radius = 100;
+        const center = 200, radius = 80;
         const isHayfever = this._state.eventType === 'HAYFEVER';
         const strokeHex = isHayfever ? '#10b981' : '#f97316';
         const fillRgba = isHayfever ? 'rgba(16, 185, 129, ' : 'rgba(249, 115, 22, ';
@@ -143,12 +152,12 @@ export class SacsiVectorPanel extends HTMLElement {
         AXES_NAMES.forEach((name, i) => {
             let startAngle = (Math.PI / 3) * i - Math.PI / 2 - (Math.PI / 6);
             let endAngle = startAngle + (Math.PI / 3);
-            let x1 = center + (radius + 20) * Math.cos(startAngle);
-            let y1 = center + (radius + 20) * Math.sin(startAngle);
-            let x2 = center + (radius + 20) * Math.cos(endAngle);
-            let y2 = center + (radius + 20) * Math.sin(endAngle);
+            let x1 = center + (radius + 15) * Math.cos(startAngle);
+            let y1 = center + (radius + 15) * Math.sin(startAngle);
+            let x2 = center + (radius + 15) * Math.cos(endAngle);
+            let y2 = center + (radius + 15) * Math.sin(endAngle);
 
-            let sectorPath = `M ${center},${center} L ${x1},${y1} A ${radius + 20} ${radius + 20} 0 0 1 ${x2},${y2} Z`;
+            let sectorPath = `M ${center},${center} L ${x1},${y1} A ${radius + 15} ${radius + 15} 0 0 1 ${x2},${y2} Z`;
             html += `<path d="${sectorPath}" fill="rgba(0,0,0,0.01)" class="sector-touch" data-axis="${name}"><title>${name}</title></path>`;
         });
 
@@ -174,15 +183,14 @@ export class SacsiVectorPanel extends HTMLElement {
         AXES_NAMES.forEach((name, i) => {
             let angle = (Math.PI / 3) * i - Math.PI / 2;
             let val = this._state.breadthAxes[name] || 0;
-            let lx = center + (radius + 70) * Math.cos(angle);
-            let ly = center + (radius + 70) * Math.sin(angle);
+            let lx = center + (radius + 60) * Math.cos(angle);
+            let ly = center + (radius + 60) * Math.sin(angle);
             let badgeColor = val > 0 ? strokeHex : '#1e293b';
 
-            // Doubled font size (18px / 16px) and high-contrast styling
             html += `<g transform="translate(${lx}, ${ly})" class="badge-group" data-axis="${name}">
-                <rect x="-65" y="-22" width="130" height="44" rx="10" fill="${badgeColor}" stroke="#000" stroke-width="2" />
-                <text x="0" y="-2" text-anchor="middle" font-size="18" font-weight="800" fill="#ffffff">${AXIS_ICONS[i]} ${name}</text>
-                <text x="0" y="15" text-anchor="middle" font-size="15" font-weight="900" fill="#fde047">Lvl ${val}</text>
+                <rect x="-55" y="-18" width="110" height="36" rx="8" fill="${badgeColor}" stroke="#000000" stroke-width="2" />
+                <text x="0" y="-1" text-anchor="middle" font-size="14" font-weight="800" fill="#ffffff">${AXIS_ICONS[i]} ${name}</text>
+                <text x="0" y="13" text-anchor="middle" font-size="12" font-weight="900" fill="#fde047">Lvl ${val}</text>
             </g>`;
         });
 
@@ -235,31 +243,42 @@ export class SacsiVectorPanel extends HTMLElement {
             .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1rem; }
             .score-display { font-weight: 900; font-size: 1rem; padding: 0.35rem 0.6rem; border-radius: 0.375rem; background: #fef3c7; color: #b45309; border: 2px solid #000000; }
             
-            /* Responsive Grid Layout */
-            .grid-layout { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; align-items: center; }
+            .grid-layout { display: grid; grid-template-columns: 80px 1fr; gap: 0.5rem; align-items: center; }
+
+            .slider-box { 
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                background: #f8fafc; 
+                padding: 0.75rem 0.25rem; 
+                border-radius: 0.5rem; 
+                border: 2px solid #000000;
+                height: 280px;
+                justify-content: space-between;
+                position: relative;
+            }
             
-            @media (max-width: 640px) {
-                .grid-layout { display: flex; flex-direction: column; }
-                .slider-box { width: 100%; flex-direction: row !important; justify-content: space-between; height: auto !important; padding: 0.75rem 1rem !important; }
-                .vertical-range { writing-mode: horizontal-tb !important; direction: ltr !important; width: 100% !important; height: 16px !important; margin: 0 0.75rem; }
-                .radar-box { width: 100%; }
+            .slider-wrapper {
+                height: 200px;
+                width: 30px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
-            .slider-box { grid-column: span 3; display: flex; flex-direction: column; align-items: center; background: #f8fafc; padding: 0.75rem 0.5rem; border-radius: 0.5rem; border: 2px solid #000000; }
-            
-            /* CORRECTED TOP-DOWN VERTICAL SLIDER (TOP = 0, BOTTOM = 10) */
             .vertical-range { 
-                writing-mode: vertical-lr; 
-                direction: ltr; /* Corrects axis orientation so Top is 0, Bottom is 10 */
                 appearance: none;
                 -webkit-appearance: none;
-                width: 18px; 
-                height: 220px; 
+                width: 200px; 
+                height: 18px; 
                 background: #cbd5e1;
                 border-radius: 8px;
                 outline: none;
                 cursor: pointer; 
+                transform: rotate(270deg);
+                transform-origin: center;
             }
+
             .vertical-range::-webkit-slider-thumb {
                 appearance: none;
                 -webkit-appearance: none;
@@ -272,17 +291,16 @@ export class SacsiVectorPanel extends HTMLElement {
                 box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             }
 
-            .radar-box { grid-column: span 9; display: flex; flex-direction: column; align-items: center; justify-content: space-between; height: 100%; width: 100%; }
-            .radar-header { display: flex; justify-content: space-between; width: 100%; align-items: center; }
-            .sacsi-val-display { font-weight: 900; font-size: 0.9rem; padding: 0.35rem 0.6rem; border-radius: 0.375rem; background: #f1f5f9; border: 2px solid #000000; }
+            .radar-box { display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: 100%; overflow: hidden; }
+            .radar-header { display: flex; justify-content: space-between; width: 100%; align-items: center; padding: 0 0.25rem; }
+            .sacsi-val-display { font-weight: 900; font-size: 0.85rem; padding: 0.35rem 0.5rem; border-radius: 0.375rem; background: #f1f5f9; border: 2px solid #000000; }
             .burden-ball { border-radius: 50%; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); border: 1px solid #000000; }
             
-            .radar-svg { width: 100%; height: auto; max-width: 500px; display: block; overflow: visible; }
+            .radar-svg { width: 100%; height: auto; max-width: 400px; display: block; overflow: visible; }
 
             .radar-grid { fill: none; stroke: #94a3b8; stroke-dasharray: 3 3; stroke-width: 1.5; }
             .sector-touch { cursor: pointer; }
-            .badge-group { cursor: pointer; transition: transform 0.1s ease; }
-            .badge-group:hover { transform: scale(1.05); }
+            .badge-group { cursor: pointer; }
 
             .benchmark-banner { background: #f8fafc; padding: 0.75rem; border-radius: 0.5rem; border: 2px solid #000000; text-align: center; margin-top: 1rem; }
             .sacsi-text-anchor { font-size: 0.85rem; font-weight: 600; color: #1e293b; margin: 0; }
@@ -290,34 +308,37 @@ export class SacsiVectorPanel extends HTMLElement {
             .threshold-drawer { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease; margin-top: 0.5rem; }
             .threshold-drawer.open { max-height: 500px; opacity: 1; }
             
-            .persistence-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; margin-top: 0.5rem; }
-            .persistence-btn { padding: 0.5rem; border-radius: 0.5rem; background: #ffffff; border: 2px solid #000000; text-align: center; cursor: pointer; font-size: 0.8rem; font-weight: 700; }
+            .persistence-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.25rem; margin-top: 0.5rem; }
+            .persistence-btn { padding: 0.4rem 0.2rem; border-radius: 0.5rem; background: #ffffff; border: 2px solid #000000; text-align: center; cursor: pointer; font-size: 0.75rem; font-weight: 700; }
             .persistence-btn.active { background: #e11d48; color: #ffffff; border-color: #000000; box-shadow: 2px 2px 0px #000000; }
         </style>
 
         <div class="panel-container">
             <div class="header-bar">
                 <span style="font-size: 0.85rem; font-weight: 900; color: #0f172a; text-transform: uppercase;">Topological SACSI Panel</span>
+                <span style="font-size: 0.65rem; font-weight: 700; color: #64748b;">${BUILD_TIMESTAMP}</span>
                 <span class="score-display">0 / 100</span>
             </div>
 
             <div class="grid-layout">
                 <div class="slider-box">
-                    <span style="font-size: 0.75rem; font-weight: 900; color: #000000; text-transform: uppercase;">Top = 0</span>
-                    <input type="range" min="0" max="10" value="0" class="vertical-range" />
-                    <span style="font-size: 0.75rem; font-weight: 900; color: #e11d48; text-transform: uppercase;">Bot = 10</span>
+                    <span style="font-size: 0.7rem; font-weight: 900; color: #000000; text-transform: uppercase;">TOP = 0</span>
+                    <div class="slider-wrapper">
+                        <input type="range" min="0" max="10" value="0" class="vertical-range" />
+                    </div>
+                    <span style="font-size: 0.7rem; font-weight: 900; color: #e11d48; text-transform: uppercase;">BOT = 10</span>
                 </div>
 
                 <div class="radar-box">
                     <div class="radar-header">
                         <span class="sacsi-val-display">Severity: 0/10</span>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Burden:</span>
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                            <span style="font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Burden:</span>
                             <div class="burden-ball" style="width: 8px; height: 8px; opacity: 0.2; background: #f97316;"></div>
                         </div>
                     </div>
 
-                    <svg class="radar-svg" viewBox="0 0 500 440"></svg>
+                    <svg class="radar-svg" viewBox="0 0 400 360"></svg>
                 </div>
             </div>
 
@@ -329,11 +350,11 @@ export class SacsiVectorPanel extends HTMLElement {
             <div class="threshold-drawer">
                 <span style="font-size: 0.7rem; font-weight: 900; color: #0f172a; text-transform: uppercase;">Persistence Band</span>
                 <div class="persistence-grid">
-                    <button class="persistence-btn active" data-val="1"><strong>&lt;30m</strong><br><span style="font-size: 0.65rem;">Transient</span></button>
-                    <button class="persistence-btn" data-val="2"><strong>30m-2h</strong><br><span style="font-size: 0.65rem;">Episodic</span></button>
-                    <button class="persistence-btn" data-val="3"><strong>2h-6h</strong><br><span style="font-size: 0.65rem;">Extended</span></button>
-                    <button class="persistence-btn" data-val="4"><strong>6h-16h</strong><br><span style="font-size: 0.65rem;">Persistent</span></button>
-                    <button class="persistence-btn" data-val="5"><strong>&gt;16h</strong><br><span style="font-size: 0.65rem;">Diurnal</span></button>
+                    <button class="persistence-btn active" data-val="1"><strong>&lt;30m</strong><br><span style="font-size: 0.6rem;">Transient</span></button>
+                    <button class="persistence-btn" data-val="2"><strong>30m-2h</strong><br><span style="font-size: 0.6rem;">Episodic</span></button>
+                    <button class="persistence-btn" data-val="3"><strong>2h-6h</strong><br><span style="font-size: 0.6rem;">Extended</span></button>
+                    <button class="persistence-btn" data-val="4"><strong>6h-16h</strong><br><span style="font-size: 0.6rem;">Persistent</span></button>
+                    <button class="persistence-btn" data-val="5"><strong>&gt;16h</strong><br><span style="font-size: 0.6rem;">Diurnal</span></button>
                 </div>
             </div>
         </div>

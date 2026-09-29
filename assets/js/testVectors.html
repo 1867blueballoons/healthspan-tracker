@@ -203,17 +203,16 @@
 
   <!-- Load production SACSI component module -->
   <script type="module">
-    // Import your custom element module file
-    import { SacsiVectorPanel } from './sacsiVectorPanel.js';
-
+    // The timestamp query parameter forces ChromeOS to bypass cached JS copies
+    import { SacsiVectorPanel } from './sacsiVectorPanel.js?v=20260929_1125';
+  
     const sacsiDom = document.getElementById('sacsiDom');
     const dispContext = document.getElementById('dispContext');
     const dispSeverity = document.getElementById('dispSeverity');
     const dispPersistence = document.getElementById('dispPersistence');
     const dispBurden = document.getElementById('dispBurden');
     const jsonOutput = document.getElementById('jsonOutput');
-
-    // Update Telemetry Display
+  
     function syncTelemetry(data) {
       dispContext.innerText = data.eventType;
       dispSeverity.innerText = `${data.sacsiDepth}/10`;
@@ -221,26 +220,23 @@
       dispBurden.innerText = `${data.compositeSbi}/100`;
       jsonOutput.innerText = JSON.stringify(data, null, 2);
     }
-
-    // Handle Symptom Context Switches
+  
     window.switchSymptomContext = function(type) {
       document.getElementById('btnGeneral').classList.toggle('active', type === 'GENERAL');
       document.getElementById('btnHayfever').classList.toggle('active', type === 'HAYFEVER');
       
       sacsiDom.setAttribute('event-type', type);
-      // Re-trigger DOM rendering
       sacsiDom.updateCalculations();
     };
-
-    // Event listener for Custom Element's native "sacsi-change" dispatch
+  
     sacsiDom.addEventListener('sacsi-change', (e) => {
       syncTelemetry(e.detail);
     });
-
-    // Initial sync
+  
     window.addEventListener('DOMContentLoaded', () => {
       syncTelemetry(sacsiDom.getValue());
     });
+  
   </script>
 
   <!-- Offline PWA Capability -->
