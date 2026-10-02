@@ -1,9 +1,9 @@
 /**
  * SACSI Systemic Vector & Burden Engine
- * Standardized Web Component with Deterministic Touch-Friendly Vertical Stepper
+ * Standardized Web Component with High-Contrast Segmented Stepper Track
  */
 
-const BUILD_TIMESTAMP = "2026-09-29 17:10:00 UTC";
+const BUILD_TIMESTAMP = "2026-09-29 17:35:00 UTC";
 
 const SEVERITY_DEFINITIONS = {
     0: "Baseline / Asymptomatic. Zero impairment, normal physiological function.",
@@ -20,11 +20,11 @@ const SEVERITY_DEFINITIONS = {
 };
 
 const SEVERITY_COLORS = {
-    0: "#10b981", 1: "#10b981", 2: "#10b981",
-    3: "#eab308", 4: "#eab308",
+    0: "#10b981", 1: "#14b8a6", 2: "#14b8a6",
+    3: "#f59e0b", 4: "#f59e0b",
     5: "#f97316", 6: "#f97316",
     7: "#ef4444", 8: "#ef4444",
-    9: "#b91c1c", 10: "#b91c1c"
+    9: "#991b1b", 10: "#991b1b"
 };
 
 const AXES_NAMES = ["Cognitive", "Neurological", "Motor", "Autonomic", "Gastrointestinal", "Affective"];
@@ -37,7 +37,7 @@ export class SacsiVectorPanel extends HTMLElement {
         
         this._state = {
             eventType: 'GENERAL',
-            sacsiDepth: 0, // Top = 0, Bottom = 10
+            sacsiDepth: 0,
             persistenceBand: 1,
             breadthAxes: { Cognitive: 0, Neurological: 0, Motor: 0, Autonomic: 0, Gastrointestinal: 0, Affective: 0 },
             compositeSbi: 0
@@ -66,7 +66,8 @@ export class SacsiVectorPanel extends HTMLElement {
     getValue() {
         return { 
             ...this._state,
-            controlMechanism: "VERTICAL_STEPPER_LADDER",
+            controlMechanism: "VERTICAL_STEPPER_TRACK",
+            uiOrientation: "TOP_ZERO_BOTTOM_TEN",
             buildTimestamp: BUILD_TIMESTAMP,
             schemaVersion: "1.3"
         };
@@ -105,27 +106,35 @@ export class SacsiVectorPanel extends HTMLElement {
         const root = this.shadowRoot;
         if (!root) return;
 
-        // Update Stepper Segment Highlight States
-        root.querySelectorAll('.stepper-segment').forEach(seg => {
-            const level = parseInt(seg.getAttribute('data-level'));
-            const activeColor = SEVERITY_COLORS[this._state.sacsiDepth];
+        const activeColor = SEVERITY_COLORS[this._state.sacsiDepth];
+
+        // Update Stepper Badges
+        root.querySelectorAll('.stepper-node').forEach(node => {
+            const level = parseInt(node.getAttribute('data-level'));
             if (level === this._state.sacsiDepth) {
-                seg.classList.add('active');
-                seg.style.background = activeColor;
-                seg.style.color = '#ffffff';
-                seg.style.borderColor = '#000000';
+                node.classList.add('active');
+                node.style.background = activeColor;
+                node.style.color = '#ffffff';
             } else {
-                seg.classList.remove('active');
-                seg.style.background = '#ffffff';
-                seg.style.color = '#1e293b';
-                seg.style.borderColor = '#cbd5e1';
+                node.classList.remove('active');
+                node.style.background = '#ffffff';
+                node.style.color = '#475569';
             }
         });
+
+        // Update Dynamic Fill Gauge Height (0% at level 0, 100% at level 10)
+        const trackGauge = root.querySelector('.track-fill-gauge');
+        if (trackGauge) {
+            const fillPercent = (this._state.sacsiDepth / 10) * 100;
+            trackGauge.style.height = `${fillPercent}%`;
+            trackGauge.style.background = activeColor;
+        }
 
         const valDisplay = root.querySelector('.sacsi-val-display');
         if (valDisplay) {
             valDisplay.textContent = `Severity: ${this._state.sacsiDepth}/10`;
-            valDisplay.style.borderColor = SEVERITY_COLORS[this._state.sacsiDepth];
+            valDisplay.style.borderColor = activeColor;
+            valDisplay.style.color = this._state.sacsiDepth > 0 ? activeColor : '#0f172a';
         }
 
         const anchorText = root.querySelector('.sacsi-text-anchor');
@@ -236,10 +245,9 @@ export class SacsiVectorPanel extends HTMLElement {
     setupEventListeners() {
         const root = this.shadowRoot;
 
-        // Stepper Track Segment Selection
-        root.querySelectorAll('.stepper-segment').forEach(seg => {
-            seg.addEventListener('click', () => {
-                const level = parseInt(seg.getAttribute('data-level'));
+        root.querySelectorAll('.stepper-node').forEach(node => {
+            node.addEventListener('click', () => {
+                const level = parseInt(node.getAttribute('data-level'));
                 this._state.sacsiDepth = level;
                 this.updateCalculations();
             });
@@ -259,59 +267,85 @@ export class SacsiVectorPanel extends HTMLElement {
     }
 
     render() {
-        // Levels 0 to 10 rendered vertically from Top (0) to Bottom (10)
         const levels = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
         this.shadowRoot.innerHTML = `
         <style>
             :host { display: block; font-family: system-ui, -apple-system, sans-serif; }
-            .panel-container { background: #ffffff; padding: 1rem; border-radius: 0.75rem; border: 3px solid #000000; box-shadow: 4px 4px 0px #000000; }
+            .panel-container { background: #ffffff; padding: 1.25rem; border-radius: 1rem; border: 3px solid #000000; box-shadow: 4px 4px 0px #000000; }
             .header-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.5rem; margin-bottom: 1rem; }
             .score-display { font-weight: 900; font-size: 1rem; padding: 0.35rem 0.6rem; border-radius: 0.375rem; background: #fef3c7; color: #b45309; border: 2px solid #000000; }
             
-            .grid-layout { display: grid; grid-template-columns: 90px 1fr; gap: 1rem; align-items: center; }
+            .grid-layout { display: grid; grid-template-columns: 85px 1fr; gap: 1.25rem; align-items: center; }
 
-            /* Vertical Stepper Container */
+            /* Modern Stepper Track Frame */
             .stepper-box { 
                 display: flex; 
                 flex-direction: column; 
                 align-items: center; 
                 background: #f8fafc; 
-                padding: 0.5rem 0.25rem; 
-                border-radius: 0.5rem; 
-                border: 2px solid #000000;
-                box-sizing: border-box;
-            }
-            
-            .stepper-track {
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-                width: 100%;
-                margin: 0.4rem 0;
+                padding: 0.75rem 0.35rem; 
+                border-radius: 0.75rem; 
+                border: 3px solid #000000;
+                box-shadow: 2px 2px 0px #000000;
+                position: relative;
             }
 
-            .stepper-segment {
-                padding: 0.35rem 0;
+            .track-line-wrapper {
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+                align-items: center;
+                gap: 4px;
+                width: 100%;
+                margin: 0.5rem 0;
+            }
+
+            /* Dynamic Background Gauge Bar */
+            .track-fill-gauge {
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 6px;
+                background: #10b981;
+                border-radius: 3px;
+                transition: height 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.25s ease;
+                z-index: 1;
+            }
+
+            /* Level Stepper Node Buttons */
+            .stepper-node {
+                position: relative;
+                z-index: 2;
+                width: 100%;
+                padding: 0.25rem 0;
                 font-size: 0.75rem;
                 font-weight: 900;
                 text-align: center;
                 border-radius: 6px;
-                border: 2px solid #cbd5e1;
+                border: 2px solid #000000;
                 background: #ffffff;
+                color: #475569;
                 cursor: pointer;
                 user-select: none;
-                transition: all 0.15s ease;
+                transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+                box-shadow: 1px 1px 0px rgba(0,0,0,0.15);
             }
 
-            .stepper-segment.active {
+            .stepper-node:hover {
+                transform: scale(1.06);
+            }
+
+            .stepper-node.active {
                 box-shadow: 2px 2px 0px #000000;
-                transform: scale(1.04);
+                transform: scale(1.1);
             }
 
             .radar-box { display: flex; flex-direction: column; align-items: center; justify-content: space-between; width: 100%; overflow: hidden; }
             .radar-header { display: flex; justify-content: space-between; width: 100%; align-items: center; padding: 0 0.25rem; }
-            .sacsi-val-display { font-weight: 900; font-size: 0.85rem; padding: 0.35rem 0.5rem; border-radius: 0.375rem; background: #f1f5f9; border: 2px solid #000000; }
+            .sacsi-val-display { font-weight: 900; font-size: 0.85rem; padding: 0.35rem 0.6rem; border-radius: 0.375rem; background: #f1f5f9; border: 2px solid #000000; transition: border-color 0.2s ease; }
             .burden-ball { border-radius: 50%; transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); border: 1px solid #000000; }
             
             .radar-svg { width: 100%; height: auto; max-width: 400px; display: block; overflow: visible; }
@@ -326,8 +360,8 @@ export class SacsiVectorPanel extends HTMLElement {
             .threshold-drawer { max-height: 0; opacity: 0; overflow: hidden; transition: max-height 0.4s ease, opacity 0.3s ease; margin-top: 0.5rem; }
             .threshold-drawer.open { max-height: 500px; opacity: 1; }
             
-            .persistence-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.25rem; margin-top: 0.5rem; }
-            .persistence-btn { padding: 0.4rem 0.2rem; border-radius: 0.5rem; background: #ffffff; border: 2px solid #000000; text-align: center; cursor: pointer; font-size: 0.75rem; font-weight: 700; }
+            .persistence-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.35rem; margin-top: 0.5rem; }
+            .persistence-btn { padding: 0.45rem 0.2rem; border-radius: 0.5rem; background: #ffffff; border: 2px solid #000000; text-align: center; cursor: pointer; font-size: 0.75rem; font-weight: 700; }
             .persistence-btn.active { background: #e11d48; color: #ffffff; border-color: #000000; box-shadow: 2px 2px 0px #000000; }
         </style>
 
@@ -340,15 +374,18 @@ export class SacsiVectorPanel extends HTMLElement {
 
             <div class="grid-layout">
                 <div class="stepper-box">
-                    <span style="font-size: 0.65rem; font-weight: 900; color: #000000; text-transform: uppercase;">TOP = 0</span>
-                    <div class="stepper-track">
+                    <span style="font-size: 0.65rem; font-weight: 900; color: #10b981; text-transform: uppercase;">TOP = 0</span>
+                    
+                    <div class="track-line-wrapper">
+                        <div class="track-fill-gauge"></div>
                         ${levels.map(lvl => `
-                            <div class="stepper-segment ${lvl === 0 ? 'active' : ''}" data-level="${lvl}">
+                            <div class="stepper-node ${lvl === 0 ? 'active' : ''}" data-level="${lvl}">
                                 Lvl ${lvl}
                             </div>
                         `).join('')}
                     </div>
-                    <span style="font-size: 0.65rem; font-weight: 900; color: #e11d48; text-transform: uppercase;">BOT = 10</span>
+
+                    <span style="font-size: 0.65rem; font-weight: 900; color: #991b1b; text-transform: uppercase;">BOT = 10</span>
                 </div>
 
                 <div class="radar-box">
